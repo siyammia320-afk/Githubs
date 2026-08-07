@@ -1,0 +1,6 @@
+{
+  "name": "FB Creator Pro",
+  "description": "Professional FB Account Creator with Saved Password, UID Copy, and Local History Management",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
