@@ -1,5 +1,6 @@
 package com.example.network
 
+import com.example.data.Country
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -21,14 +22,6 @@ data class AccountResult(
 
 object FbAccountService {
 
-    private val FRENCH_NAMES = listOf(
-        Pair("Jean", "Dupont"), Pair("Marie", "Martin"),
-        Pair("Pierre", "Durand"), Pair("Sophie", "Lefèvre"),
-        Pair("Lucas", "Moreau"), Pair("Emma", "Petit"),
-        Pair("Louis", "Roux"), Pair("Chloé", "Richard"),
-        Pair("Hugo", "Simon"), Pair("Inès", "Laurent")
-    )
-
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -43,10 +36,11 @@ object FbAccountService {
 
     suspend fun createAccount(
         phoneInput: String,
-        passwordInput: String
+        passwordInput: String,
+        country: Country = Country.BANGLADESH
     ): AccountResult = withContext(Dispatchers.IO) {
         val datrCookie = generateDatrCookie()
-        val (fname, lname) = FRENCH_NAMES.random()
+        val (fname, lname) = country.getRandomFirstAndLastName()
         val day = Random.nextInt(1, 29)
         val month = Random.nextInt(1, 13)
         val year = Random.nextInt(1980, 2006)

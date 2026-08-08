@@ -8,9 +8,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,10 +29,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -40,6 +46,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -49,7 +56,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.example.data.Country
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,7 +100,35 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AccountEntity
 import com.example.ui.MainViewModel
+import com.example.ui.VoltxActiveNumber
 import com.example.ui.theme.FBTheme
+
+fun getCountryFlagForRange(rangeCode: String): String {
+    val clean = rangeCode.replace(Regex("[^0-9]"), "")
+    return when {
+        clean.startsWith("880") -> "🇧🇩"
+        clean.startsWith("1") -> "🇺🇸"
+        clean.startsWith("33") -> "🇫🇷"
+        clean.startsWith("86") -> "🇨🇳"
+        clean.startsWith("966") -> "🇸🇦"
+        clean.startsWith("91") -> "🇮🇳"
+        clean.startsWith("261") -> "🇲🇬"
+        clean.startsWith("44") -> "🇬🇧"
+        clean.startsWith("49") -> "🇩🇪"
+        clean.startsWith("92") -> "🇵🇰"
+        clean.startsWith("62") -> "🇮🇩"
+        clean.startsWith("60") -> "🇲🇾"
+        clean.startsWith("63") -> "🇵🇭"
+        clean.startsWith("20") -> "🇪🇬"
+        clean.startsWith("90") -> "🇹🇷"
+        clean.startsWith("7") -> "🇷🇺"
+        clean.startsWith("39") -> "🇮🇹"
+        clean.startsWith("34") -> "🇪🇸"
+        clean.startsWith("55") -> "🇧🇷"
+        clean.startsWith("234") -> "🇳🇬"
+        else -> "📱"
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -217,7 +255,7 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                                 color = Color.White
                             )
                             Text(
-                                text = if (uiState.isActivated) "ACTIVATED • AUTO-CHECK ONLINE" else "ACTIVATION REQUIRED",
+                                text = if (uiState.isActivated) "ACTIVATED • AUTO OTP 3s" else "ACTIVATION REQUIRED",
                                 fontSize = 10.sp,
                                 color = if (uiState.isActivated) Color(0xFF10B981) else Color(0xFFEF4444),
                                 fontWeight = FontWeight.SemiBold
@@ -262,7 +300,7 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "Create Account",
+                                text = "Create",
                                 fontWeight = FontWeight.Bold,
                                 color = if (selectedTabIndex == 0) Color.White else Color.Gray
                             )
@@ -272,6 +310,29 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 Tab(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
+                    modifier = Modifier.testTag("tab_inbox"),
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Inbox (${uiState.activeNumbers.size})",
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedTabIndex == 1) Color.White else Color.Gray
+                            )
+                        }
+                    }
+                )
+                Tab(
+                    selected = selectedTabIndex == 2,
+                    onClick = { selectedTabIndex = 2 },
                     modifier = Modifier.testTag("tab_history"),
                     text = {
                         Row(
@@ -281,33 +342,39 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
+                                tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "Saved (${accountsHistory.size})",
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTabIndex == 1) Color.White else Color.Gray
+                                color = if (selectedTabIndex == 2) Color.White else Color.Gray
                             )
                         }
                     }
                 )
             }
 
-            if (selectedTabIndex == 0) {
-                CreateAccountTabContent(
+            when (selectedTabIndex) {
+                0 -> CreateAccountTabContent(
                     uiState = uiState,
-                    onPhoneChange = viewModel::onPhoneChanged,
                     onPasswordChange = viewModel::onPasswordChanged,
-                    onCreateClick = viewModel::createAccount,
+                    onCountrySelected = viewModel::onCountrySelected,
+                    onRangeClicked = viewModel::onRangeClicked,
+                    onRefreshRanges = viewModel::refreshFacebookRanges,
+                    onCopyDeviceId = { devId -> viewModel.copyToClipboard(context, devId, "DEVICE ID") },
+                    onCheckActivation = viewModel::checkDeviceActivationManually,
                     onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
                     onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
-                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
-                    onCopyDeviceId = { devId -> viewModel.copyToClipboard(context, devId, "DEVICE ID") },
-                    onCheckActivation = viewModel::checkDeviceActivationManually
+                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") }
                 )
-            } else {
-                AccountHistoryTabContent(
+                1 -> InboxTabContent(
+                    activeNumbers = uiState.activeNumbers,
+                    onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
+                    onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
+                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") }
+                )
+                2 -> AccountHistoryTabContent(
                     accounts = accountsHistory,
                     onClearAll = viewModel::clearAllAccounts,
                     onDeleteOne = viewModel::deleteAccount,
@@ -320,17 +387,19 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CreateAccountTabContent(
     uiState: com.example.ui.AccountCreatorUiState,
-    onPhoneChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onCreateClick: () -> Unit,
+    onCountrySelected: (Country) -> Unit,
+    onRangeClicked: (String) -> Unit,
+    onRefreshRanges: () -> Unit,
+    onCopyDeviceId: (String) -> Unit,
+    onCheckActivation: () -> Unit,
     onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
-    onCopyCookies: (String) -> Unit,
-    onCopyDeviceId: (String) -> Unit,
-    onCheckActivation: () -> Unit
+    onCopyCookies: (String) -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -472,12 +541,6 @@ fun CreateAccountTabContent(
                             }
                         }
                     }
-
-                    Text(
-                        text = "Status: ${uiState.activationStatusMessage} (Auto-checks every 1 min)",
-                        fontSize = 11.sp,
-                        color = Color(0xFF64748B)
-                    )
                 }
             }
         }
@@ -544,7 +607,117 @@ fun CreateAccountTabContent(
             }
         }
 
-        // Form Card (Only active when activated)
+        // Facebook Live Ranges Selection Section
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "📘 Facebook Ranges",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF38BDF8)
+                            )
+                            Text(
+                                text = "রেঞ্জে চাপ দিলে auto number নিয়ে account তৈরি হবে",
+                                fontSize = 11.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onRefreshRanges,
+                            enabled = !uiState.isLoadingRanges
+                        ) {
+                            if (uiState.isLoadingRanges) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color(0xFF38BDF8),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Refresh Ranges",
+                                    tint = Color(0xFF38BDF8)
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFF1E293B))
+
+                    if (uiState.facebookRanges.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (uiState.isLoadingRanges) "Loading live ranges..." else "No Facebook ranges available. Tap Refresh above.",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                        }
+                    } else {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            uiState.facebookRanges.forEach { rangeCode ->
+                                val flag = getCountryFlagForRange(rangeCode)
+                                val isSelected = uiState.selectedRangeCode == rangeCode
+
+                                Button(
+                                    onClick = { onRangeClicked(rangeCode) },
+                                    enabled = uiState.isActivated && !uiState.isFetchingNumber && !uiState.isCreating,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) Color(0xFF38BDF8) else Color(0xFF334155)
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(text = flag, fontSize = 16.sp)
+                                        Text(
+                                            text = rangeCode,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Account Setup Configuration Card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -558,36 +731,56 @@ fun CreateAccountTabContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "📱 Account Setup",
+                        text = "⚙️ Account Options",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF38BDF8)
                     )
 
-                    // Phone Number Field
-                    OutlinedTextField(
-                        value = uiState.phoneInput,
-                        onValueChange = onPhoneChange,
-                        enabled = uiState.isActivated,
-                        label = { Text("Phone Number", color = Color(0xFF94A3B8)) },
-                        placeholder = { Text("017XXXXXXXX", color = Color(0xFF475569)) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF38BDF8))
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF38BDF8),
-                            unfocusedBorderColor = Color(0xFF334155),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            disabledBorderColor = Color(0xFF1E293B),
-                            disabledTextColor = Color.Gray
-                        ),
+                    // Auto-Fetched Phone Display Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("phone_input")
+                            .border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Auto-Fetched Phone Number:",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF94A3B8)
+                                )
+                                Text(
+                                    text = if (uiState.phoneInput.isNotEmpty()) uiState.phoneInput else "Select a Range above to fetch phone",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color.Gray,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                            if (uiState.isFetchingNumber || uiState.isCreating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color(0xFF38BDF8),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                    }
+
+                    // Country Selection Dropdown for Names
+                    CountryDropdownSelector(
+                        selectedCountry = uiState.selectedCountry,
+                        enabled = uiState.isActivated,
+                        onCountrySelected = onCountrySelected
                     )
 
                     // Password Field (Persistent)
@@ -625,88 +818,37 @@ fun CreateAccountTabContent(
                             .fillMaxWidth()
                             .testTag("password_input")
                     )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Create Button
-                    Button(
-                        onClick = onCreateClick,
-                        enabled = uiState.isActivated && !uiState.isCreating,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2563EB),
-                            disabledContainerColor = Color(0xFF1E3A8A)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("create_account_button")
-                    ) {
-                        if (uiState.isCreating) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    strokeWidth = 2.dp,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text("Creating Account...", fontSize = 14.sp, color = Color.White)
-                            }
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (uiState.isActivated) Icons.Default.PersonAdd else Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = if (uiState.isActivated) "CREATE ACCOUNT PRO" else "LOCKED - ACTIVATION REQUIRED",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
 
-        // Compact Output Result Box
-        if (uiState.lastCreatedAccount != null) {
-            val acc = uiState.lastCreatedAccount
+        // Result Card (Shows last created account details)
+        uiState.lastCreatedAccount?.let { account ->
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF022C22)),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Color(0xFF059669), RoundedCornerShape(12.dp))
-                        .testTag("created_account_result_box")
+                        .border(1.dp, Color(0xFF059669), RoundedCornerShape(14.dp))
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                Icons.Default.CheckCircle,
+                                imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 tint = Color(0xFF10B981),
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "ACCOUNT CREATED",
-                                fontSize = 13.sp,
+                                text = "Account Created Successfully!",
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF34D399)
                             )
@@ -714,59 +856,359 @@ fun CreateAccountTabContent(
 
                         HorizontalDivider(color = Color(0xFF065F46))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("UID: ${acc.uid}", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                            Text("Phone: ${acc.phone}", fontSize = 12.sp, color = Color(0xFFA7F3D0))
-                        }
+                        Text("Name: ${account.name}", fontSize = 13.sp, color = Color.White)
+                        Text("UID: ${account.uid}", fontSize = 13.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("Phone: ${account.phone}", fontSize = 13.sp, color = Color.White)
+                        Text("Password: ${account.password}", fontSize = 13.sp, color = Color.White)
 
                         // 3 Separate Copy Buttons
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = { onCopyUid(acc.uid) },
+                                onClick = { onCopyUid(account.uid) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp)
+                                    .height(38.dp)
                                     .testTag("copy_uid_button")
                             ) {
-                                Text("UID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+                                    Text("UID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                }
                             }
 
                             Button(
-                                onClick = { onCopyNumber(acc.phone) },
+                                onClick = { onCopyNumber(account.phone) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp)
+                                    .height(38.dp)
                                     .testTag("copy_number_button")
                             ) {
-                                Text("NUMBER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Text("NUMBER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
 
                             Button(
-                                onClick = { onCopyCookies(acc.cookies) },
+                                onClick = { onCopyCookies(account.cookies) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp)
+                                    .height(38.dp)
                                     .testTag("copy_cookies_button")
                             ) {
-                                Text("COOKIES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Text("COOKIES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InboxTabContent(
+    activeNumbers: List<VoltxActiveNumber>,
+    onCopyOtp: (String) -> Unit,
+    onCopyPhone: (String) -> Unit,
+    onCopyUid: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "📥 OTP Inbox (${activeNumbers.size})",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "Checking OTP auto every 3s • Auto-copied on arrival",
+                    fontSize = 11.sp,
+                    color = Color(0xFF10B981)
+                )
+            }
+        }
+
+        if (activeNumbers.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Email,
+                        contentDescription = null,
+                        tint = Color(0xFF334155),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Text(
+                        text = "No active requested numbers yet",
+                        color = Color(0xFF64748B),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Go to 'Create' tab and tap any Range to request a number automatically!",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(activeNumbers) { active ->
+                    ActiveNumberInboxCard(
+                        active = active,
+                        onCopyOtp = onCopyOtp,
+                        onCopyPhone = onCopyPhone,
+                        onCopyUid = onCopyUid
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActiveNumberInboxCard(
+    active: VoltxActiveNumber,
+    onCopyOtp: (String) -> Unit,
+    onCopyPhone: (String) -> Unit,
+    onCopyUid: (String) -> Unit
+) {
+    val flag = getCountryFlagForRange(active.rangeCode)
+    val hasOtp = !active.otp.isNullOrEmpty() && active.otp != "N/A"
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (hasOtp) Color(0xFF062C1E) else Color(0xFF0F172A)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                if (hasOtp) Color(0xFF059669) else Color(0xFF1E293B),
+                RoundedCornerShape(12.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = flag, fontSize = 20.sp)
+                    Column {
+                        Text(
+                            text = active.phone,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "Range: ${active.rangeCode} • Time: ${active.timestamp}",
+                            fontSize = 11.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                IconButton(onClick = { onCopyPhone(active.phone) }) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy phone",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            if (!active.accountUid.isNullOrEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E293B), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "UID: ${active.accountUid}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF38BDF8),
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = "Tap to copy",
+                        fontSize = 10.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.clickable { onCopyUid(active.accountUid) }
+                    )
+                }
+            }
+
+            HorizontalDivider(color = if (hasOtp) Color(0xFF065F46) else Color(0xFF1E293B))
+
+            // OTP Section
+            if (hasOtp) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Sms,
+                                    contentDescription = null,
+                                    tint = Color(0xFF34D399),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "OTP RECEIVED",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF34D399)
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF047857))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "✅ AUTO-COPIED",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = active.otp ?: "",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
+                                fontFamily = FontFamily.Monospace,
+                                letterSpacing = 2.sp
+                            )
+
+                            Button(
+                                onClick = { onCopyOtp(active.otp ?: "") },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("COPY OTP", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                        }
+
+                        if (!active.rawMessage.isNullOrEmpty()) {
+                            Text(
+                                text = "Message: ${active.rawMessage}",
+                                fontSize = 11.sp,
+                                color = Color(0xFFA7F3D0)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color(0xFFF59E0B),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "⏳ Waiting for OTP... (Checking every 3 seconds)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFFBBF24)
+                    )
                 }
             }
         }
@@ -951,6 +1393,94 @@ fun AccountItemCard(
                         .height(34.dp)
                 ) {
                     Text("COOKIES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CountryDropdownSelector(
+    selectedCountry: Country,
+    enabled: Boolean,
+    onCountrySelected: (Country) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Select Country Name Pool",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF38BDF8)
+        )
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (enabled) Color(0xFF1E293B) else Color(0xFF0F172A)
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
+                    .clickable(enabled = enabled) { expanded = !expanded }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(text = selectedCountry.flagEmoji, fontSize = 20.sp)
+                        Text(
+                            text = selectedCountry.displayName,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (enabled) Color.White else Color.Gray
+                        )
+                    }
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                        contentDescription = "Select country",
+                        tint = if (enabled) Color(0xFF38BDF8) else Color.Gray
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .background(Color(0xFF0F172A))
+                    .border(1.dp, Color(0xFF334155), RoundedCornerShape(8.dp))
+            ) {
+                Country.values().forEach { country ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(text = country.flagEmoji, fontSize = 18.sp)
+                                Text(
+                                    text = country.displayName,
+                                    fontSize = 14.sp,
+                                    color = if (country == selectedCountry) Color(0xFF38BDF8) else Color.White,
+                                    fontWeight = if (country == selectedCountry) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        },
+                        onClick = {
+                            onCountrySelected(country)
+                            expanded = false
+                        }
+                    )
                 }
             }
         }

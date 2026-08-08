@@ -12,4 +12,8 @@ class PreferencesRepository(context: Context) {
     var isTelegramJoined: Boolean
         get() = prefs.getBoolean("is_telegram_joined", false)
         set(value) = prefs.edit().putBoolean("is_telegram_joined", value).apply()
+
+    var selectedCountryCode: String
+        get() = prefs.getString("selected_country_code", "BD") ?: "BD"
+        set(value) = prefs.edit().putString("selected_country_code", value).apply()
 }
