@@ -287,21 +287,22 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 Tab(
                     selected = selectedTabIndex == 0,
                     onClick = { selectedTabIndex = 0 },
-                    modifier = Modifier.testTag("tab_create"),
+                    modifier = Modifier.testTag("tab_get_number"),
                     text = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                Icons.Default.PersonAdd,
+                                Icons.Default.Smartphone,
                                 contentDescription = null,
                                 tint = if (selectedTabIndex == 0) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Create",
+                                text = "GET NUMBER",
                                 fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
                                 color = if (selectedTabIndex == 0) Color.White else Color.Gray
                             )
                         }
@@ -310,21 +311,22 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 Tab(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
-                    modifier = Modifier.testTag("tab_inbox"),
+                    modifier = Modifier.testTag("tab_create"),
                     text = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                Icons.Default.Email,
+                                Icons.Default.PersonAdd,
                                 contentDescription = null,
                                 tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Inbox (${uiState.activeNumbers.size})",
+                                text = "Create",
                                 fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
                                 color = if (selectedTabIndex == 1) Color.White else Color.Gray
                             )
                         }
@@ -333,22 +335,47 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 Tab(
                     selected = selectedTabIndex == 2,
                     onClick = { selectedTabIndex = 2 },
+                    modifier = Modifier.testTag("tab_inbox"),
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Inbox (${uiState.activeNumbers.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = if (selectedTabIndex == 2) Color.White else Color.Gray
+                            )
+                        }
+                    }
+                )
+                Tab(
+                    selected = selectedTabIndex == 3,
+                    onClick = { selectedTabIndex = 3 },
                     modifier = Modifier.testTag("tab_history"),
                     text = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(18.dp)
+                                tint = if (selectedTabIndex == 3) Color(0xFF38BDF8) else Color.Gray,
+                                modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "Saved (${accountsHistory.size})",
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTabIndex == 2) Color.White else Color.Gray
+                                fontSize = 11.sp,
+                                color = if (selectedTabIndex == 3) Color.White else Color.Gray
                             )
                         }
                     }
@@ -356,25 +383,33 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
             }
 
             when (selectedTabIndex) {
-                0 -> CreateAccountTabContent(
+                0 -> GetNumberTabContent(
                     uiState = uiState,
-                    onPasswordChange = viewModel::onPasswordChanged,
-                    onCountrySelected = viewModel::onCountrySelected,
                     onRangeClicked = viewModel::onRangeClicked,
                     onRefreshRanges = viewModel::refreshFacebookRanges,
                     onCopyDeviceId = { devId -> viewModel.copyToClipboard(context, devId, "DEVICE ID") },
                     onCheckActivation = viewModel::checkDeviceActivationManually,
+                    onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "PHONE NUMBER") },
+                    onGoToCreate = { selectedTabIndex = 1 }
+                )
+                1 -> CreateAccountTabContent(
+                    uiState = uiState,
+                    onPhoneChange = viewModel::onPhoneChanged,
+                    onPasswordChange = viewModel::onPasswordChanged,
+                    onCountrySelected = viewModel::onCountrySelected,
+                    onCreateAccount = viewModel::createAccount,
                     onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
                     onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
-                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") }
+                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
+                    onGoToGetNumber = { selectedTabIndex = 0 }
                 )
-                1 -> InboxTabContent(
+                2 -> InboxTabContent(
                     activeNumbers = uiState.activeNumbers,
                     onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
                     onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
                     onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") }
                 )
-                2 -> AccountHistoryTabContent(
+                3 -> AccountHistoryTabContent(
                     accounts = accountsHistory,
                     onClearAll = viewModel::clearAllAccounts,
                     onDeleteOne = viewModel::deleteAccount,
@@ -389,19 +424,15 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CreateAccountTabContent(
+fun GetNumberTabContent(
     uiState: com.example.ui.AccountCreatorUiState,
-    onPasswordChange: (String) -> Unit,
-    onCountrySelected: (Country) -> Unit,
     onRangeClicked: (String) -> Unit,
     onRefreshRanges: () -> Unit,
     onCopyDeviceId: (String) -> Unit,
     onCheckActivation: () -> Unit,
-    onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
-    onCopyCookies: (String) -> Unit
+    onGoToCreate: () -> Unit
 ) {
-    var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     LazyColumn(
@@ -633,7 +664,7 @@ fun CreateAccountTabContent(
                                 color = Color(0xFF38BDF8)
                             )
                             Text(
-                                text = "রেঞ্জে চাপ দিলে auto number নিয়ে account তৈরি হবে",
+                                text = "রেঞ্জে চাপ দিলে অটো নাম্বার আসবে",
                                 fontSize = 11.sp,
                                 color = Color(0xFF94A3B8)
                             )
@@ -717,7 +748,136 @@ fun CreateAccountTabContent(
             }
         }
 
-        // Account Setup Configuration Card
+        // Fetched Number Display & Quick Navigate to Create
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        1.dp,
+                        if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color(0xFF1E293B),
+                        RoundedCornerShape(14.dp)
+                    )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "📱 FETECHED PHONE NUMBER / প্রাপ্ত নম্বর",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                        if (uiState.isFetchingNumber) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color(0xFF38BDF8),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E293B))
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = if (uiState.phoneInput.isNotEmpty()) uiState.phoneInput else "উপরে কোনো রেঞ্জে চাপ দিয়ে নাম্বার আনুন",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color.Gray,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            if (uiState.selectedRangeCode != null) {
+                                Text(
+                                    text = "Range: ${uiState.selectedRangeCode}",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+                    }
+
+                    if (uiState.phoneInput.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { onCopyNumber(uiState.phoneInput) },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8))
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Text("COPY NUMBER", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Button(
+                                onClick = onGoToCreate,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .height(42.dp)
+                                    .testTag("go_to_create_button")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                    Text("CREATE NOW (তৈরি করুন)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CreateAccountTabContent(
+    uiState: com.example.ui.AccountCreatorUiState,
+    onPhoneChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onCountrySelected: (Country) -> Unit,
+    onCreateAccount: () -> Unit,
+    onCopyUid: (String) -> Unit,
+    onCopyNumber: (String) -> Unit,
+    onCopyCookies: (String) -> Unit,
+    onGoToGetNumber: () -> Unit
+) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Account Setup Form Card
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -728,51 +888,52 @@ fun CreateAccountTabContent(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "⚙️ Account Options",
-                        fontSize = 15.sp,
+                        text = "⚙️ Create Account Options",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF38BDF8)
                     )
 
-                    // Auto-Fetched Phone Display Card
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
-                    ) {
-                        Row(
+                    // Phone Number Field
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Phone Number (ফোন নম্বর):",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF94A3B8)
+                        )
+
+                        OutlinedTextField(
+                            value = uiState.phoneInput,
+                            onValueChange = onPhoneChange,
+                            enabled = uiState.isActivated,
+                            placeholder = { Text("GET NUMBER থেকে রেঞ্জে চাপ দিয়ে নম্বর আনুন", color = Color(0xFF475569), fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF38BDF8))
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF38BDF8),
+                                unfocusedBorderColor = Color(0xFF334155),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Auto-Fetched Phone Number:",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF94A3B8)
-                                )
-                                Text(
-                                    text = if (uiState.phoneInput.isNotEmpty()) uiState.phoneInput else "Select a Range above to fetch phone",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color.Gray,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-                            if (uiState.isFetchingNumber || uiState.isCreating) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color(0xFF38BDF8),
-                                    strokeWidth = 2.dp
-                                )
-                            }
+                                .testTag("phone_input")
+                        )
+
+                        if (uiState.phoneInput.isEmpty()) {
+                            Text(
+                                text = "💡 'GET NUMBER' ট্যাবে চাপ দিয়ে রেঞ্জ সিলেক্ট করলে নম্বর এখানে চলে আসবে",
+                                fontSize = 11.sp,
+                                color = Color(0xFFF59E0B)
+                            )
                         }
                     }
 
@@ -818,6 +979,43 @@ fun CreateAccountTabContent(
                             .fillMaxWidth()
                             .testTag("password_input")
                     )
+
+                    // CREATE NOW Button
+                    Button(
+                        onClick = onCreateAccount,
+                        enabled = uiState.isActivated && !uiState.isCreating,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0284C7),
+                            disabledContainerColor = Color(0xFF1E293B)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("create_now_button")
+                    ) {
+                        if (uiState.isCreating) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text("CREATING ACCOUNT...", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Text("CREATE NOW (একাউন্ট তৈরি করুন)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -990,7 +1188,7 @@ fun InboxTabContent(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Go to 'Create' tab and tap any Range to request a number automatically!",
+                        text = "Go to 'GET NUMBER' tab and tap any Range to request a number automatically!",
                         color = Color.Gray,
                         fontSize = 12.sp
                     )

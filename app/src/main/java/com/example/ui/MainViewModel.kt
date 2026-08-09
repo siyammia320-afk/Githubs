@@ -205,11 +205,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isFetchingNumber = false,
                     phoneInput = number,
                     activeNumbers = newActiveList,
-                    successMessage = "Number $number received! Auto-creating account..."
+                    successMessage = "Number $number received! Go to Create tab or tap CREATE NOW."
                 )
 
-                // Auto create account
-                createAccountWithNumber(number)
+                // Number is fetched, user will tap Create Now to create account
             }
         }
     }
@@ -301,12 +300,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val phone = currentState.phoneInput.trim()
         if (phone.isNotEmpty()) {
             createAccountWithNumber(phone)
-        } else if (currentState.selectedRangeCode != null) {
-            onRangeClicked(currentState.selectedRangeCode)
-        } else if (currentState.facebookRanges.isNotEmpty()) {
-            onRangeClicked(currentState.facebookRanges.first())
         } else {
-            _uiState.value = currentState.copy(errorMessage = "Please select a range to get a number!")
+            _uiState.value = currentState.copy(errorMessage = "Please get a number first from GET NUMBER tab!")
         }
     }
 
