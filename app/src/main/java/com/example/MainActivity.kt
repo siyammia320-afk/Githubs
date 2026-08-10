@@ -686,7 +686,7 @@ fun GetNumberTabContent(
                                 color = Color(0xFF38BDF8)
                             )
                             Text(
-                                text = "রেঞ্জে চাপ দিলে অটো নাম্বার আসবে",
+                                text = "Tap a range to fetch auto number",
                                 fontSize = 11.sp,
                                 color = Color(0xFF94A3B8)
                             )
@@ -793,7 +793,7 @@ fun GetNumberTabContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "📱 FETECHED PHONE NUMBER / প্রাপ্ত নম্বর",
+                            text = "📱 FETCHED PHONE NUMBER",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF38BDF8)
@@ -816,7 +816,7 @@ fun GetNumberTabContent(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = if (uiState.phoneInput.isNotEmpty()) uiState.phoneInput else "উপরে কোনো রেঞ্জে চাপ দিয়ে নাম্বার আনুন",
+                                text = if (uiState.phoneInput.isNotEmpty()) uiState.phoneInput else "Tap any range above to get a number",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color.Gray,
@@ -868,7 +868,7 @@ fun GetNumberTabContent(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                                    Text("CREATE NOW (তৈরি করুন)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                    Text("CREATE NOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                                 }
                             }
                         }
@@ -983,7 +983,7 @@ fun CreateAccountTabContent(
                     // Phone Number Field (STRICT READ-ONLY - MANUALLY TYPING DISABLED)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Phone Number (ফোন নম্বর - Read Only):",
+                            text = "Phone Number (Read Only):",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF94A3B8)
@@ -994,7 +994,7 @@ fun CreateAccountTabContent(
                             onValueChange = { /* Read only - no manual input allowed */ },
                             readOnly = true,
                             enabled = false,
-                            placeholder = { Text("GET NUMBER থেকে রেঞ্জে চাপ দিয়ে নম্বর আনুন", color = Color(0xFF64748B), fontSize = 12.sp) },
+                            placeholder = { Text("Select a range from GET NUMBER tab", color = Color(0xFF64748B), fontSize = 12.sp) },
                             leadingIcon = {
                                 Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF38BDF8))
                             },
@@ -1013,9 +1013,9 @@ fun CreateAccountTabContent(
 
                         Text(
                             text = if (uiState.phoneInput.isEmpty())
-                                "🔒 নম্বর ম্যানুয়ালি বসানো যাবে না! 'GET NUMBER' ট্যাবে চাপ দিয়ে রেঞ্জ সিলেক্ট করুন।"
+                                "🔒 Manual typing disabled! Select a range in GET NUMBER tab."
                             else
-                                "✅ নম্বর সফলভাবে আনা হয়েছে!",
+                                "✅ Number selected successfully!",
                             fontSize = 11.sp,
                             color = if (uiState.phoneInput.isEmpty()) Color(0xFFF59E0B) else Color(0xFF10B981)
                         )
@@ -1096,7 +1096,7 @@ fun CreateAccountTabContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                Text("CREATE NOW (একাউন্ট তৈরি করুন)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("CREATE NOW", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -1795,7 +1795,7 @@ fun ProxySettingsDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Account Create বাটনে চাপ দিলে Proxy অটো অন হবে এবং ক্রিয়েট শেষ হলে অটো অফ হয়ে যাবে।",
+                    text = "Proxy will automatically enable during Account Creation and disable when finished.",
                     fontSize = 11.sp,
                     color = Color(0xFF94A3B8)
                 )

@@ -20,7 +20,7 @@ data class VoltxOtpItem(
 object VoltxApiService {
 
     private const val API_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api"
-    private const val API_KEY = "MX1RN9ZKIHY"
+    private const val API_KEY = "MAEHW0XOA8V"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

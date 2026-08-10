@@ -7,18 +7,18 @@ enum class Country(
     val names: List<String>
 ) {
     BANGLADESH("BD", "Bangladesh", "🇧🇩", listOf(
-        "আরাফাত হোসেন", "সিয়াম আহমেদ", "রাকিব হাসান", "তানভীর ইসলাম", "নাঈম হোসেন",
-        "মাহফুজ রহমান", "সাকিব আহমেদ", "ইমরান হোসেন", "ফাহিম হাসান", "রিফাত ইসলাম",
-        "শাকিল আহমেদ", "তৌহিদুল ইসলাম", "মেহেদী হাসান", "রায়হান হোসেন", "জুবায়ের আহমেদ",
-        "নাজমুল হাসান", "সাব্বির রহমান", "আদনান হোসেন", "হাসান মাহমুদ", "নাসির উদ্দিন",
-        "ফরহাদ হোসেন", "সোহাগ মিয়া", "মুস্তাফিজুর রহমান", "আবির হোসেন", "রাকিবুল ইসলাম",
-        "শাওন আহমেদ", "তানজিম হাসান", "সাইফুল ইসলাম", "আশিকুর রহমান", "জাহিদ হাসান",
-        "মারুফ হোসেন", "রুবেল আহমেদ", "নোমান ইসলাম", "ইব্রাহিম হোসেন", "তামিম হাসান",
-        "রিফাত হোসেন", "মাসুদ রানা", "কামরুল হাসান", "সাদমান ইসলাম", "রেজাউল করিম",
-        "মিজানুর রহমান", "আমিনুল ইসলাম", "শরিফুল হাসান", "ফয়সাল আহমেদ", "সুমন হোসেন",
-        "হৃদয় ইসলাম", "আরমান হোসেন", "শামীম আহমেদ", "সোহেল রহমান", "রাশেদুল ইসলাম",
-        "অনিক হাসান", "ইশতিয়াক হোসেন", "রুবাইয়াত ইসলাম", "মাহিন আহমেদ", "সাকলাইন হোসেন",
-        "নাফিস রহমান", "তাহমিদ হাসান", "ইফতেখার ইসলাম", "মুরসালিন হোসেন", "সামিউল আহমেদ"
+        "Arafat Hossain", "Siam Ahmed", "Rakib Hasan", "Tanvir Islam", "Nayeem Hossain",
+        "Mahfuzur Rahman", "Sakib Ahmed", "Imran Hossain", "Fahim Hasan", "Rifat Islam",
+        "Shakil Ahmed", "Touhidul Islam", "Mehedi Hasan", "Rayhan Hossain", "Jubayer Ahmed",
+        "Nazmul Hasan", "Sabbir Rahman", "Adnan Hossain", "Hasan Mahmud", "Nasir Uddin",
+        "Farhad Hossain", "Sohag Miah", "Mustafizur Rahman", "Abir Hossain", "Rakibul Islam",
+        "Shaon Ahmed", "Tanjim Hasan", "Saiful Islam", "Ashikur Rahman", "Jahid Hasan",
+        "Maruf Hossain", "Rubel Ahmed", "Noman Islam", "Ibrahim Hossain", "Tamim Hasan",
+        "Rifat Hossain", "Masud Rana", "Kamrul Hasan", "Sadman Islam", "Rezaul Karim",
+        "Mijanur Rahman", "Aminul Islam", "Shariful Hasan", "Faysal Ahmed", "Sumon Hossain",
+        "Arman Hossain", "Shamim Ahmed", "Sohel Rahman", "Rashedul Islam", "Aonik Hasan",
+        "Ishtiaq Hossain", "Rubaiyat Islam", "Mahin Ahmed", "Saklain Hossain", "Nafis Rahman",
+        "Tahmid Hasan", "Iftekhar Islam", "Mursalin Hossain", "Samiul Ahmed"
     )),
 
     UNITED_STATES("US", "United States", "🇺🇸", listOf(
