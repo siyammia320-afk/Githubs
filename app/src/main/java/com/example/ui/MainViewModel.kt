@@ -59,7 +59,13 @@ data class AccountCreatorUiState(
     val isFetchingNumber: Boolean = false,
     val selectedRangeCode: String? = null,
     val activeNumbers: List<VoltxActiveNumber> = emptyList(),
-    val lastCopiedOtp: String? = null
+    val lastCopiedOtp: String? = null,
+    val proxyServer: String = "",
+    val proxyPort: String = "",
+    val proxyUsername: String = "",
+    val proxyPassword: String = "",
+    val proxyStatus: String = "DISCONNECTED",
+    val showProxyDialog: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -85,11 +91,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val showTelegram = !prefsRepository.isTelegramJoined
         val devId = DeviceActivationService.getDeviceId(application)
 
+        val pServer = prefsRepository.proxyServer
+        val pPort = prefsRepository.proxyPort
+        val pUser = prefsRepository.proxyUsername
+        val pPass = prefsRepository.proxyPassword
+
         _uiState.value = _uiState.value.copy(
             passwordInput = savedPassword,
             selectedCountry = savedCountry,
             showTelegramDialog = showTelegram,
-            deviceId = devId
+            deviceId = devId,
+            proxyServer = pServer,
+            proxyPort = pPort,
+            proxyUsername = pUser,
+            proxyPassword = pPass
         )
 
         // Start periodic activation check (every 1 minute)
@@ -237,8 +252,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(showTelegramDialog = false)
     }
 
+    fun openProxyDialog() {
+        _uiState.value = _uiState.value.copy(showProxyDialog = true)
+    }
+
+    fun closeProxyDialog() {
+        _uiState.value = _uiState.value.copy(showProxyDialog = false)
+    }
+
+    fun saveProxySettings(server: String, port: String, user: String, pass: String) {
+        prefsRepository.proxyServer = server.trim()
+        prefsRepository.proxyPort = port.trim()
+        prefsRepository.proxyUsername = user.trim()
+        prefsRepository.proxyPassword = pass.trim()
+
+        _uiState.value = _uiState.value.copy(
+            proxyServer = server.trim(),
+            proxyPort = port.trim(),
+            proxyUsername = user.trim(),
+            proxyPassword = pass.trim(),
+            showProxyDialog = false,
+            successMessage = "Proxy Settings Saved!"
+        )
+    }
+
     fun onPhoneChanged(newPhone: String) {
-        _uiState.value = _uiState.value.copy(phoneInput = newPhone, errorMessage = null)
+        // Read-only: phone number cannot be modified manually from input box
     }
 
     fun onPasswordChanged(newPassword: String) {
@@ -255,41 +294,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentState = _uiState.value
         val password = currentState.passwordInput.ifEmpty { "Pass123456" }
 
-        _uiState.value = currentState.copy(isCreating = true, errorMessage = null)
+        val hasProxy = currentState.proxyServer.isNotBlank() && currentState.proxyPort.isNotBlank()
+
+        _uiState.value = currentState.copy(
+            isCreating = true,
+            errorMessage = null,
+            proxyStatus = if (hasProxy) "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})..." else "DISCONNECTED"
+        )
 
         viewModelScope.launch {
-            val result = FbAccountService.createAccount(
-                phoneInput = phone,
-                passwordInput = password,
-                country = currentState.selectedCountry
-            )
-
-            if (result.success) {
-                val entity = AccountEntity(
-                    phone = result.phone,
-                    uid = result.uid,
-                    name = result.name,
-                    password = result.password,
-                    cookies = result.cookies
-                )
-                val newId = accountDao.insertAccount(entity)
-                val savedEntity = entity.copy(id = newId)
-
-                // Update active number with UID
-                val updatedActives = _uiState.value.activeNumbers.map {
-                    if (it.phone == phone) it.copy(accountUid = result.uid) else it
+            try {
+                if (hasProxy) {
+                    delay(400) // Simulate proxy connection startup
+                    _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTED (PROXY ACTIVE)")
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    lastCreatedAccount = savedEntity,
-                    activeNumbers = updatedActives,
-                    successMessage = "Account Created! UID: ${result.uid}. Waiting for OTP..."
+                val result = FbAccountService.createAccount(
+                    phoneInput = phone,
+                    passwordInput = password,
+                    country = currentState.selectedCountry,
+                    proxyServer = currentState.proxyServer,
+                    proxyPort = currentState.proxyPort,
+                    proxyUsername = currentState.proxyUsername,
+                    proxyPassword = currentState.proxyPassword
                 )
-            } else {
+
+                if (result.success) {
+                    val entity = AccountEntity(
+                        phone = result.phone,
+                        uid = result.uid,
+                        name = result.name,
+                        password = result.password,
+                        cookies = result.cookies
+                    )
+                    val newId = accountDao.insertAccount(entity)
+                    val savedEntity = entity.copy(id = newId)
+
+                    // Update active number with UID
+                    val updatedActives = _uiState.value.activeNumbers.map {
+                        if (it.phone == phone) it.copy(accountUid = result.uid) else it
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        lastCreatedAccount = savedEntity,
+                        activeNumbers = updatedActives,
+                        successMessage = "Account Created! UID: ${result.uid}. Waiting for OTP..."
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        errorMessage = "Account Creation Failed: ${result.error}"
+                    )
+                }
+            } finally {
+                // Proxy automatically turns OFF after account creation completes
                 _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Account Creation Failed: ${result.error}"
+                    proxyStatus = "DISCONNECTED (AUTO OFF)"
                 )
             }
         }

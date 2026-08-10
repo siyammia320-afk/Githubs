@@ -16,4 +16,20 @@ class PreferencesRepository(context: Context) {
     var selectedCountryCode: String
         get() = prefs.getString("selected_country_code", "BD") ?: "BD"
         set(value) = prefs.edit().putString("selected_country_code", value).apply()
+
+    var proxyServer: String
+        get() = prefs.getString("proxy_server", "") ?: ""
+        set(value) = prefs.edit().putString("proxy_server", value).apply()
+
+    var proxyPort: String
+        get() = prefs.getString("proxy_port", "") ?: ""
+        set(value) = prefs.edit().putString("proxy_port", value).apply()
+
+    var proxyUsername: String
+        get() = prefs.getString("proxy_username", "") ?: ""
+        set(value) = prefs.edit().putString("proxy_username", value).apply()
+
+    var proxyPassword: String
+        get() = prefs.getString("proxy_password", "") ?: ""
+        set(value) = prefs.edit().putString("proxy_password", value).apply()
 }

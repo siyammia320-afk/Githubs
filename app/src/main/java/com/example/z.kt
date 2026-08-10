@@ -4,9 +4,9 @@ import android.util.Base64
 import kotlin.system.exitProcess
 
 object ZConfig {
-    // Base64 encoded link: https://pastebin.com/raw/Pip8L7ke
-    private const val B64_URL_PRIMARY = "aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L1BpcDhMN2tl"
-    private const val B64_URL_SECONDARY = "aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L1BpcDhMN2tl"
+    // Base64 encoded link: https://pastebin.com/raw/8viERybm
+    private const val B64_URL_PRIMARY = "aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3Lzh2aUVSeWJt"
+    private const val B64_URL_SECONDARY = "aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3Lzh2aUVSeWJt"
 
     fun getRawUrl(): String {
         return try {

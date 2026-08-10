@@ -37,7 +37,11 @@ object FbAccountService {
     suspend fun createAccount(
         phoneInput: String,
         passwordInput: String,
-        country: Country = Country.BANGLADESH
+        country: Country = Country.BANGLADESH,
+        proxyServer: String = "",
+        proxyPort: String = "",
+        proxyUsername: String = "",
+        proxyPassword: String = ""
     ): AccountResult = withContext(Dispatchers.IO) {
         val datrCookie = generateDatrCookie()
         val (fname, lname) = country.getRandomFirstAndLastName()
@@ -45,6 +49,25 @@ object FbAccountService {
         val month = Random.nextInt(1, 13)
         val year = Random.nextInt(1980, 2006)
         val phone = phoneInput.replace(Regex("[^0-9]"), "")
+
+        // Configure OkHttpClient with Proxy if provided
+        val activeClient = if (proxyServer.isNotBlank() && proxyPort.isNotBlank()) {
+            val portInt = proxyPort.trim().toIntOrNull() ?: 8080
+            val proxy = java.net.Proxy(
+                java.net.Proxy.Type.HTTP,
+                java.net.InetSocketAddress(proxyServer.trim(), portInt)
+            )
+            val builder = client.newBuilder().proxy(proxy)
+            if (proxyUsername.isNotBlank() && proxyPassword.isNotBlank()) {
+                builder.proxyAuthenticator { _, response ->
+                    val credential = okhttp3.Credentials.basic(proxyUsername.trim(), proxyPassword.trim())
+                    response.request.newBuilder().header("Proxy-Authorization", credential).build()
+                }
+            }
+            builder.build()
+        } else {
+            client
+        }
 
         val userAgent = "Mozilla/5.0 (Linux; Android 12; itel S665L Build/SP1A.210812.016) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.91 Mobile Safari/537.36"
 
@@ -124,7 +147,7 @@ object FbAccountService {
 
         try {
             val startTime = System.currentTimeMillis()
-            val response = client.newCall(request).execute()
+            val response = activeClient.newCall(request).execute()
             val elapsedTime = System.currentTimeMillis() - startTime
 
             if (response.isSuccessful) {

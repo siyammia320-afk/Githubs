@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Sms
@@ -220,6 +221,14 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
         )
     }
 
+    if (uiState.showProxyDialog) {
+        ProxySettingsDialog(
+            uiState = uiState,
+            onSave = viewModel::saveProxySettings,
+            onDismiss = viewModel::closeProxyDialog
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
@@ -261,6 +270,18 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = viewModel::openProxyDialog,
+                        modifier = Modifier.testTag("settings_proxy_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Proxy Settings",
+                            tint = Color(0xFF38BDF8)
+                        )
                     }
                 }
             )
@@ -401,7 +422,8 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                     onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
                     onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
                     onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
-                    onGoToGetNumber = { selectedTabIndex = 0 }
+                    onGoToGetNumber = { selectedTabIndex = 0 },
+                    onOpenProxySettings = viewModel::openProxyDialog
                 )
                 2 -> InboxTabContent(
                     activeNumbers = uiState.activeNumbers,
@@ -867,7 +889,8 @@ fun CreateAccountTabContent(
     onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
     onCopyCookies: (String) -> Unit,
-    onGoToGetNumber: () -> Unit
+    onGoToGetNumber: () -> Unit,
+    onOpenProxySettings: () -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -877,6 +900,66 @@ fun CreateAccountTabContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Proxy Auto Status Banner Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "🌐 PROXY AUTO SYSTEM",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                        Text(
+                            text = "Status: ${uiState.proxyStatus}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                uiState.proxyStatus.contains("ACTIVE") || uiState.proxyStatus.contains("CONNECTED") -> Color(0xFF10B981)
+                                uiState.proxyStatus.contains("CONNECTING") -> Color(0xFFF59E0B)
+                                else -> Color(0xFF94A3B8)
+                            }
+                        )
+                        Text(
+                            text = if (uiState.proxyServer.isNotEmpty())
+                                "Configured: ${uiState.proxyServer}:${uiState.proxyPort}"
+                            else
+                                "No Proxy set (Tap ⚙️ to configure)",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onOpenProxySettings,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0xFF1E293B))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Proxy Settings",
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+
         // Account Setup Form Card
         item {
             Card(
@@ -897,10 +980,10 @@ fun CreateAccountTabContent(
                         color = Color(0xFF38BDF8)
                     )
 
-                    // Phone Number Field
+                    // Phone Number Field (STRICT READ-ONLY - MANUALLY TYPING DISABLED)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Phone Number (ফোন নম্বর):",
+                            text = "Phone Number (ফোন নম্বর - Read Only):",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF94A3B8)
@@ -908,19 +991,19 @@ fun CreateAccountTabContent(
 
                         OutlinedTextField(
                             value = uiState.phoneInput,
-                            onValueChange = onPhoneChange,
-                            enabled = uiState.isActivated,
-                            placeholder = { Text("GET NUMBER থেকে রেঞ্জে চাপ দিয়ে নম্বর আনুন", color = Color(0xFF475569), fontSize = 12.sp) },
+                            onValueChange = { /* Read only - no manual input allowed */ },
+                            readOnly = true,
+                            enabled = false,
+                            placeholder = { Text("GET NUMBER থেকে রেঞ্জে চাপ দিয়ে নম্বর আনুন", color = Color(0xFF64748B), fontSize = 12.sp) },
                             leadingIcon = {
                                 Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF38BDF8))
                             },
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF38BDF8),
-                                unfocusedBorderColor = Color(0xFF334155),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
+                                disabledBorderColor = Color(0xFF334155),
+                                disabledTextColor = Color.White,
+                                disabledLeadingIconColor = Color(0xFF38BDF8),
+                                disabledPlaceholderColor = Color(0xFF64748B)
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
@@ -928,13 +1011,14 @@ fun CreateAccountTabContent(
                                 .testTag("phone_input")
                         )
 
-                        if (uiState.phoneInput.isEmpty()) {
-                            Text(
-                                text = "💡 'GET NUMBER' ট্যাবে চাপ দিয়ে রেঞ্জ সিলেক্ট করলে নম্বর এখানে চলে আসবে",
-                                fontSize = 11.sp,
-                                color = Color(0xFFF59E0B)
-                            )
-                        }
+                        Text(
+                            text = if (uiState.phoneInput.isEmpty())
+                                "🔒 নম্বর ম্যানুয়ালি বসানো যাবে না! 'GET NUMBER' ট্যাবে চাপ দিয়ে রেঞ্জ সিলেক্ট করুন।"
+                            else
+                                "✅ নম্বর সফলভাবে আনা হয়েছে!",
+                            fontSize = 11.sp,
+                            color = if (uiState.phoneInput.isEmpty()) Color(0xFFF59E0B) else Color(0xFF10B981)
+                        )
                     }
 
                     // Country Selection Dropdown for Names
@@ -1683,4 +1767,119 @@ fun CountryDropdownSelector(
             }
         }
     }
+}
+
+@Composable
+fun ProxySettingsDialog(
+    uiState: com.example.ui.AccountCreatorUiState,
+    onSave: (String, String, String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var server by remember { mutableStateOf(uiState.proxyServer) }
+    var port by remember { mutableStateOf(uiState.proxyPort) }
+    var username by remember { mutableStateOf(uiState.proxyUsername) }
+    var password by remember { mutableStateOf(uiState.proxyPassword) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF0F172A),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF38BDF8))
+                Text("Proxy Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Account Create বাটনে চাপ দিলে Proxy অটো অন হবে এবং ক্রিয়েট শেষ হলে অটো অফ হয়ে যাবে।",
+                    fontSize = 11.sp,
+                    color = Color(0xFF94A3B8)
+                )
+
+                OutlinedTextField(
+                    value = server,
+                    onValueChange = { server = it },
+                    label = { Text("Proxy Server / IP", color = Color(0xFF38BDF8)) },
+                    placeholder = { Text("e.g. 192.168.1.1", color = Color.Gray) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color(0xFF334155),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = port,
+                    onValueChange = { port = it },
+                    label = { Text("Proxy Port", color = Color(0xFF38BDF8)) },
+                    placeholder = { Text("e.g. 8080", color = Color.Gray) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color(0xFF334155),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username (Optional)", color = Color(0xFF38BDF8)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color(0xFF334155),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password (Optional)", color = Color(0xFF38BDF8)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color(0xFF334155),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(server, port, username, password) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Text("SAVE PROXY", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+            ) {
+                Text("Cancel", color = Color.LightGray)
+            }
+        }
+    )
 }

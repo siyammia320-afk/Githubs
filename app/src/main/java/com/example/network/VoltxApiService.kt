@@ -20,7 +20,7 @@ data class VoltxOtpItem(
 object VoltxApiService {
 
     private const val API_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api"
-    private const val API_KEY = "MAEHW0XOA8V"
+    private const val API_KEY = "MX1RN9ZKIHY"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -160,20 +160,22 @@ object VoltxApiService {
     private fun extractOtpFromText(text: String): String {
         val cleanText = text.replace("-", "").replace(" ", "")
         val patterns = listOf(
+            Pattern.compile("code[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("OTP[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\b(\\d{8})\\b"),
             Pattern.compile("\\b(\\d{7})\\b"),
             Pattern.compile("\\b(\\d{6})\\b"),
             Pattern.compile("\\b(\\d{5})\\b"),
             Pattern.compile("\\b(\\d{4})\\b"),
             Pattern.compile("\\b(\\d{3})\\b"),
-            Pattern.compile("code[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("OTP[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("(\\d{4,8})"),
+            Pattern.compile("(\\d{3,8})")
         )
 
         for (pattern in patterns) {
             val matcher = pattern.matcher(cleanText)
             if (matcher.find()) {
-                val group = matcher.group(1)
+                val group = if (matcher.groupCount() >= 1) matcher.group(1) else matcher.group(0)
                 if (!group.isNullOrBlank() && group.length >= 3) {
                     return group
                 }
