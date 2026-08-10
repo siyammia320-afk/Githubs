@@ -158,29 +158,43 @@ object VoltxApiService {
     }
 
     private fun extractOtpFromText(text: String): String {
-        val cleanText = text.replace("-", "").replace(" ", "")
         val patterns = listOf(
-            Pattern.compile("code[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("OTP[:\\s]*(\\d+)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(?:code|otp|is|pin|fb|facebook)[:\\s-]*(\\d{3,8})", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\b(\\d{8})\\b"),
             Pattern.compile("\\b(\\d{7})\\b"),
             Pattern.compile("\\b(\\d{6})\\b"),
             Pattern.compile("\\b(\\d{5})\\b"),
             Pattern.compile("\\b(\\d{4})\\b"),
-            Pattern.compile("\\b(\\d{3})\\b"),
-            Pattern.compile("(\\d{4,8})"),
-            Pattern.compile("(\\d{3,8})")
+            Pattern.compile("\\b(\\d{3})\\b")
         )
 
         for (pattern in patterns) {
-            val matcher = pattern.matcher(cleanText)
+            val matcher = pattern.matcher(text)
             if (matcher.find()) {
-                val group = if (matcher.groupCount() >= 1) matcher.group(1) else matcher.group(0)
+                val group = if (matcher.groupCount() >= 1 && matcher.group(1) != null) matcher.group(1) else matcher.group(0)
                 if (!group.isNullOrBlank() && group.length >= 3) {
                     return group
                 }
             }
         }
+
+        val cleanText = text.replace("-", "").replace(" ", "")
+        for (pattern in patterns) {
+            val matcher = pattern.matcher(cleanText)
+            if (matcher.find()) {
+                val group = if (matcher.groupCount() >= 1 && matcher.group(1) != null) matcher.group(1) else matcher.group(0)
+                if (!group.isNullOrBlank() && group.length >= 3) {
+                    return group
+                }
+            }
+        }
+
+        val fallbackMatcher = Pattern.compile("(\\d{3,8})").matcher(cleanText)
+        if (fallbackMatcher.find()) {
+            val g = fallbackMatcher.group(1)
+            if (!g.isNullOrBlank()) return g
+        }
+
         return "N/A"
     }
 }

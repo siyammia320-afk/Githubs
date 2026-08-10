@@ -101,6 +101,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedCountry = savedCountry,
             showTelegramDialog = showTelegram,
             deviceId = devId,
+            isActivated = false,
+            isCheckingActivation = true,
+            activationStatusMessage = "Checking activation...",
             proxyServer = pServer,
             proxyPort = pPort,
             proxyUsername = pUser,
@@ -135,6 +138,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun isPhoneNumberMatch(num1: String, num2: String): Boolean {
+        val d1 = num1.replace("\\D".toRegex(), "")
+        val d2 = num2.replace("\\D".toRegex(), "")
+        if (d1.isEmpty() || d2.isEmpty()) return false
+        if (d1 == d2) return true
+        if (d1.endsWith(d2) || d2.endsWith(d1)) return true
+        if (d1.length >= 8 && d2.length >= 8 && d1.takeLast(8) == d2.takeLast(8)) return true
+        return d1.contains(d2) || d2.contains(d1)
+    }
+
     private suspend fun checkOtpsInternal() {
         val currentActives = _uiState.value.activeNumbers
         if (currentActives.isEmpty()) return
@@ -143,7 +156,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (otps.isEmpty()) return
 
         val updatedActives = currentActives.map { active ->
-            val match = otps.find { it.number == active.phone || it.number.contains(active.phone) || active.phone.contains(it.number) }
+            val match = otps.find { isPhoneNumberMatch(it.number, active.phone) }
             if (match != null && match.otp != "N/A") {
                 if (!active.isAutoCopied || active.otp != match.otp) {
                     // Auto copy OTP to clipboard
@@ -216,16 +229,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 val newActiveList = listOf(newActive) + _uiState.value.activeNumbers
 
+                // Auto copy phone number to clipboard when fetched
+                try {
+                    val clipboard = getApplication<Application>().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("PHONE_NUMBER", number)
+                    clipboard.setPrimaryClip(clip)
+                } catch (_: Exception) {}
+
                 _uiState.value = _uiState.value.copy(
                     isFetchingNumber = false,
                     phoneInput = number,
                     activeNumbers = newActiveList,
-                    successMessage = "Number $number received! Go to Create tab or tap CREATE NOW."
+                    successMessage = "📋 Number $number received & Auto-Copied to Clipboard!"
                 )
-
-                // Number is fetched, user will tap Create Now to create account
             }
         }
+    }
+
+    fun clearInbox() {
+        _uiState.value = _uiState.value.copy(
+            activeNumbers = emptyList(),
+            successMessage = "Inbox cleared!"
+        )
     }
 
     fun checkDeviceActivationManually() {

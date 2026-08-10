@@ -429,7 +429,8 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                     activeNumbers = uiState.activeNumbers,
                     onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
                     onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
-                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") }
+                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
+                    onClearInbox = viewModel::clearInbox
                 )
                 3 -> AccountHistoryTabContent(
                     accounts = accountsHistory,
@@ -1219,7 +1220,8 @@ fun InboxTabContent(
     activeNumbers: List<VoltxActiveNumber>,
     onCopyOtp: (String) -> Unit,
     onCopyPhone: (String) -> Unit,
-    onCopyUid: (String) -> Unit
+    onCopyUid: (String) -> Unit,
+    onClearInbox: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1245,6 +1247,16 @@ fun InboxTabContent(
                     fontSize = 11.sp,
                     color = Color(0xFF10B981)
                 )
+            }
+
+            if (activeNumbers.isNotEmpty()) {
+                IconButton(onClick = onClearInbox) {
+                    Icon(
+                        Icons.Default.DeleteSweep,
+                        contentDescription = "Clear Inbox",
+                        tint = Color(0xFFEF4444)
+                    )
+                }
             }
         }
 
