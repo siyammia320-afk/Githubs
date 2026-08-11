@@ -138,8 +138,6 @@ fun getCountryFlagForRange(rangeCode: String): String {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Verify link integrity on app launch
-        ZConfig.getRawUrl()
 
         enableEdgeToEdge()
         setContent {
