@@ -179,6 +179,7 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
+        var touchDownTime = 0L
 
         bubbleView?.setOnTouchListener { _, event ->
             when (event.action) {
@@ -187,19 +188,28 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                     initialY = bubbleParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    touchDownTime = System.currentTimeMillis()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    bubbleParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                    bubbleParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                    bubbleView?.let { windowManager.updateViewLayout(it, bubbleParams) }
+                    val deltaX = (event.rawX - initialTouchX).toInt()
+                    val deltaY = (event.rawY - initialTouchY).toInt()
+                    bubbleParams.x = initialX + deltaX
+                    bubbleParams.y = initialY + deltaY
+                    bubbleView?.let {
+                        if (it.parent != null) {
+                            try {
+                                windowManager.updateViewLayout(it, bubbleParams)
+                            } catch (_: Exception) {}
+                        }
+                    }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     val diffX = abs(event.rawX - initialTouchX)
                     val diffY = abs(event.rawY - initialTouchY)
-                    // If touch didn't move significantly, consider it a TAP
-                    if (diffX < 12 && diffY < 12) {
+                    val duration = System.currentTimeMillis() - touchDownTime
+                    if (diffX < 35 && diffY < 35 && duration < 600) {
                         openDialogOverlay()
                     }
                     true
@@ -224,17 +234,20 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         }
 
         val displayMetrics = resources.displayMetrics
-        val width = (displayMetrics.widthPixels * 0.95).toInt()
-        val height = (displayMetrics.heightPixels * 0.88).toInt()
+        val width = (displayMetrics.widthPixels * 0.96).toInt()
+        val height = (displayMetrics.heightPixels * 0.90).toInt()
 
         dialogParams = WindowManager.LayoutParams(
             width,
             height,
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
 
         dialogView = ComposeView(this).apply {
@@ -243,12 +256,14 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             setViewTreeSavedStateRegistryOwner(this@FloatingWidgetService)
 
             setContent {
-                FloatingDialogOverlayContent(
-                    onCloseClick = { closeDialogOverlay() },
-                    onStopServiceClick = {
-                        stopSelf()
-                    }
-                )
+                com.example.ui.theme.FBTheme {
+                    FloatingDialogOverlayContent(
+                        onCloseClick = { closeDialogOverlay() },
+                        onStopServiceClick = {
+                            stopSelf()
+                        }
+                    )
+                }
             }
         }
     }
@@ -256,18 +271,26 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
     private fun openDialogOverlay() {
         if (isDialogShowing) return
         try {
-            // Hide small bubble
-            bubbleView?.visibility = View.GONE
-
-            // Add dialog overlay
             if (dialogView?.parent == null) {
                 windowManager.addView(dialogView, dialogParams)
             } else {
                 dialogView?.visibility = View.VISIBLE
             }
+            bubbleView?.visibility = View.GONE
             isDialogShowing = true
         } catch (e: Exception) {
             e.printStackTrace()
+            // Keep bubble visible if overlay failed
+            bubbleView?.visibility = View.VISIBLE
+            isDialogShowing = false
+
+            // Fallback: Bring MainActivity to front if overlay dialog fails
+            try {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                startActivity(intent)
+            } catch (_: Exception) {}
         }
     }
 

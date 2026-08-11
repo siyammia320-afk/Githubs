@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.History
 import android.provider.Settings
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -1916,8 +1917,24 @@ fun FloatingWidgetControlCard() {
     val isFloatingActive by FloatingWidgetService.isRunning.collectAsStateWithLifecycle()
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasOverlayPermission = Settings.canDrawOverlays(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(Unit) {
-        hasOverlayPermission = Settings.canDrawOverlays(context)
+        while (true) {
+            hasOverlayPermission = Settings.canDrawOverlays(context)
+            kotlinx.coroutines.delay(1000)
+        }
     }
 
     Card(
