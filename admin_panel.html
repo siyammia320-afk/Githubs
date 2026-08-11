@@ -3,362 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arafat FB Creator - Admin Panel</title>
+    <title>Arafat FB Creator - Admin Control Panel</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .glass-card { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="max-w-4xl mx-auto space-y-6">
 
         <!-- Header -->
-        <div class="glass-card rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl border-l-4 border-sky-500">
+        <div class="glass-card rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl border-l-4 border-sky-500">
             <div>
                 <h1 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
                     <i class="fa-brands fa-facebook text-sky-400"></i> ARAFAT FB CREATOR
                 </h1>
                 <p class="text-sm text-slate-400 mt-1">
-                    Firebase Device Activation & Admin License Panel
+                    Master Admin Control Panel — Global App ON/OFF Switch
                 </p>
             </div>
-            <button onclick="loadDevices()" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-sky-600/30">
-                <i class="fa-solid fa-rotate"></i> Refresh Data
+            <button onclick="loadAppConfig()" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-sky-600/30">
+                <i class="fa-solid fa-rotate"></i> Refresh Status
             </button>
         </div>
 
-        <!-- Stats Bar -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-card p-4 rounded-xl text-center">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Devices</div>
-                <div id="statTotal" class="text-2xl font-black text-sky-400 mt-1">0</div>
-            </div>
-            <div class="glass-card p-4 rounded-xl text-center">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Approved</div>
-                <div id="statActive" class="text-2xl font-black text-emerald-400 mt-1">0</div>
-            </div>
-            <div class="glass-card p-4 rounded-xl text-center">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Banned</div>
-                <div id="statBanned" class="text-2xl font-black text-rose-500 mt-1">0</div>
-            </div>
-            <div class="glass-card p-4 rounded-xl text-center">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Expired</div>
-                <div id="statExpired" class="text-2xl font-black text-amber-400 mt-1">0</div>
-            </div>
-        </div>
-
-        <!-- Main Form & List Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            <!-- Add/Edit Device Form -->
-            <div class="glass-card rounded-2xl p-6 h-fit shadow-lg border border-slate-700/50">
-                <h2 class="text-lg font-bold text-sky-400 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus"></i> <span id="formTitle">Add / Approve Device</span>
-                </h2>
-
-                <form id="deviceForm" onsubmit="saveDevice(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">User Name (ইউজারের নাম)</label>
-                        <input type="text" id="userName" required placeholder="e.g. Siyam Mia" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Device ID (ডিভাইস আইডি)</label>
-                        <input type="text" id="deviceId" required placeholder="e.g. 9774D56D682E549C" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white uppercase focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Subscription Duration (মেয়াদ)</label>
-                        <select id="durationSelect" onchange="toggleCustomDays()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
-                            <option value="1">1 Day (১ দিন)</option>
-                            <option value="2">2 Days (২ দিন)</option>
-                            <option value="3">3 Days (৩ দিন)</option>
-                            <option value="5" selected>5 Days (৫ দিন)</option>
-                            <option value="7">7 Days (১ সপ্তাহ)</option>
-                            <option value="15">15 Days (১৫ দিন)</option>
-                            <option value="30">30 Days (১ মাস)</option>
-                            <option value="365">365 Days (১ বছর)</option>
-                            <option value="custom">Custom Days (কাস্টম দিন)</option>
-                        </select>
-                    </div>
-
-                    <div id="customDaysBox" class="hidden">
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Enter Custom Days (কত দিন)</label>
-                        <input type="number" id="customDaysInput" placeholder="e.g. 10" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1">Approval Status (স্ট্যাটাস)</label>
-                        <select id="deviceStatus" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
-                            <option value="approved">✅ Approved (সক্রিয়)</option>
-                            <option value="banned">🚫 Banned (ব্যান করা)</option>
-                        </select>
-                    </div>
-
-                    <div class="pt-2 flex gap-2">
-                        <button type="submit" id="saveBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition shadow-lg shadow-emerald-600/30 active:scale-95">
-                            <i class="fa-solid fa-check"></i> Save & Approve
-                        </button>
-                        <button type="button" onclick="resetForm()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2.5 rounded-xl font-bold transition">
-                            Reset
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Device List Container -->
-            <div class="lg:col-span-2 glass-card rounded-2xl p-6 shadow-lg border border-slate-700/50 space-y-4">
-
-                <!-- Search and Filters -->
-                <div class="flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-sky-400"></i> Registered Devices
+        <!-- Global App ON/OFF Control Card -->
+        <div class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl space-y-6 border border-slate-700/60">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700/60 pb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-power-off text-amber-400"></i> App Master Switch (অ্যাপস অন/অফ সুইচ)
                     </h2>
-                    <div class="relative w-full sm:w-64">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
-                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search Name or ID..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+                    <p class="text-xs text-slate-400 mt-1">
+                        HTML এর ভিতর এপস অফ রাখলে কারো ফোনে অ্যাপস চলবে না। অন রাখলে সবাই চালাতে পারবে।
+                    </p>
+                </div>
+
+                <!-- Current Status Badge -->
+                <div id="statusBadge" class="px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-slate-800 text-slate-400 border border-slate-700">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+                </div>
+            </div>
+
+            <!-- Big Action Buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <!-- TURN ON BUTTON -->
+                <button onclick="setAppStatus('on')" class="group relative overflow-hidden bg-emerald-600 hover:bg-emerald-500 text-white p-6 rounded-2xl font-black text-lg transition duration-200 shadow-xl shadow-emerald-900/30 flex flex-col items-center justify-center gap-2 border border-emerald-400/30 active:scale-98">
+                    <div class="w-14 h-14 rounded-full bg-emerald-500/40 flex items-center justify-center text-2xl text-emerald-200 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-circle-check"></i>
                     </div>
-                </div>
+                    <span>TURN APP ON (অ্যাপ চালু করুন 🟢)</span>
+                    <span class="text-xs font-normal text-emerald-200">সব ইউজার স্বাভাবিকভাবে অ্যাপ চালাতে পারবে</span>
+                </button>
 
-                <!-- Table -->
-                <div class="overflow-x-auto rounded-xl border border-slate-800">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-900/80 text-slate-400 text-xs font-bold uppercase border-b border-slate-800">
-                                <th class="p-3">User & Device ID</th>
-                                <th class="p-3">Status</th>
-                                <th class="p-3">Expires On</th>
-                                <th class="p-3 text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="deviceTableBody" class="divide-y divide-slate-800 text-slate-300">
-                            <tr>
-                                <td colspan="4" class="p-6 text-center text-slate-500">Loading devices...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <!-- TURN OFF BUTTON -->
+                <button onclick="setAppStatus('off')" class="group relative overflow-hidden bg-rose-600 hover:bg-rose-500 text-white p-6 rounded-2xl font-black text-lg transition duration-200 shadow-xl shadow-rose-900/30 flex flex-col items-center justify-center gap-2 border border-rose-400/30 active:scale-98">
+                    <div class="w-14 h-14 rounded-full bg-rose-500/40 flex items-center justify-center text-2xl text-rose-200 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <span>TURN APP OFF (অ্যাপ বন্ধ রাখুন 🔴)</span>
+                    <span class="text-xs font-normal text-rose-200">কারো ফোনে অ্যাপ চলবে না, অফ দেখাবে</span>
+                </button>
 
+            </div>
+
+            <!-- Custom Notice Message Form -->
+            <div class="pt-4 border-t border-slate-700/60 space-y-3">
+                <label class="block text-sm font-bold text-slate-300">
+                    <i class="fa-solid fa-bullhorn text-sky-400"></i> Maintenance Notice Message (ইউজারদের মেসেজ)
+                </label>
+                <textarea id="noticeMessage" rows="3" placeholder="e.g. অ্যাপস বর্তমানে আপডেটের কাজের জন্য বন্ধ রয়েছে। কিছুক্ষন পর চেষ্টা করুন।" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-sky-500 resize-none"></textarea>
+                <button onclick="saveNoticeOnly()" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-lg active:scale-95">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Notice Message Only
+                </button>
             </div>
 
         </div>
 
     </div>
 
-    <!-- Firebase REST Logic -->
     <script>
-        const FIREBASE_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com/devices.json";
-        let allDevices = {};
+        const CONFIG_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com/app_config.json";
 
-        function toggleCustomDays() {
-            const select = document.getElementById('durationSelect');
-            const customBox = document.getElementById('customDaysBox');
-            if (select.value === 'custom') {
-                customBox.classList.remove('hidden');
-            } else {
-                customBox.classList.add('hidden');
-            }
-        }
+        async function loadAppConfig() {
+            const badge = document.getElementById('statusBadge');
+            badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-slate-800 text-slate-400 border border-slate-700";
+            badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking...`;
 
-        async function loadDevices() {
             try {
-                const response = await fetch(FIREBASE_URL);
-                const data = await response.json();
-                allDevices = data || {};
-                renderTable();
-            } catch (err) {
-                alert("Firebase data fetch failed: " + err.message);
-            }
-        }
+                const res = await fetch(CONFIG_URL);
+                const data = await res.json();
 
-        function renderTable() {
-            const tbody = document.getElementById('deviceTableBody');
-            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+                const status = (data && data.status) ? data.status : 'on';
+                const notice = (data && data.notice) ? data.notice : 'অ্যাপ বর্তমানে এডমিন দ্বারা বন্ধ রাখা হয়েছে।';
 
-            let total = 0, activeCount = 0, bannedCount = 0, expiredCount = 0;
-            const now = Date.now();
+                document.getElementById('noticeMessage').value = notice;
 
-            let html = "";
-            const entries = Object.entries(allDevices);
-
-            const filtered = entries.filter(([id, dev]) => {
-                const userName = (dev.userName || "").toLowerCase();
-                const devId = id.toLowerCase();
-                return userName.includes(searchTerm) || devId.includes(searchTerm);
-            });
-
-            entries.forEach(([id, dev]) => {
-                total++;
-                const isBanned = dev.status === "banned";
-                const isExpired = dev.expiryTimestamp && now > dev.expiryTimestamp;
-
-                if (isBanned) bannedCount++;
-                else if (isExpired) expiredCount++;
-                else activeCount++;
-            });
-
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statActive').innerText = activeCount;
-            document.getElementById('statBanned').innerText = bannedCount;
-            document.getElementById('statExpired').innerText = expiredCount;
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">No matching devices found</td></tr>`;
-                return;
-            }
-
-            filtered.forEach(([id, dev]) => {
-                const isBanned = dev.status === "banned";
-                const isExpired = dev.expiryTimestamp && now > dev.expiryTimestamp;
-
-                let statusBadge = "";
-                if (isBanned) {
-                    statusBadge = `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-2.5 py-1 rounded-full font-bold">🚫 Banned</span>`;
-                } else if (isExpired) {
-                    statusBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">⚠️ Expired</span>`;
+                if (status === 'off' || status === 'disabled') {
+                    badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-rose-500/20 text-rose-400 border border-rose-500/40";
+                    badge.innerHTML = `<i class="fa-solid fa-circle text-rose-500 animate-pulse"></i> APP IS OFF (বন্ধ 🔴)`;
                 } else {
-                    statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-2.5 py-1 rounded-full font-bold">✅ Active</span>`;
+                    badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+                    badge.innerHTML = `<i class="fa-solid fa-circle text-emerald-500 animate-pulse"></i> APP IS ON (চালু 🟢)`;
                 }
-
-                let expiryText = "Lifetime";
-                if (dev.expiryTimestamp) {
-                    const dateObj = new Date(dev.expiryTimestamp);
-                    expiryText = dateObj.toLocaleDateString('en-GB') + " " + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                }
-
-                html += `
-                    <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-3">
-                            <div class="font-bold text-white text-base">${dev.userName || 'Unnamed User'}</div>
-                            <div class="text-xs text-sky-400 font-mono tracking-wide">${id}</div>
-                        </td>
-                        <td class="p-3">${statusBadge}</td>
-                        <td class="p-3 text-xs text-slate-300 font-medium">${expiryText}</td>
-                        <td class="p-3 text-center">
-                            <div class="flex justify-center items-center gap-2">
-                                <button onclick="toggleBan('${id}', ${!isBanned})" class="${isBanned ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-amber-600 hover:bg-amber-500'} text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
-                                    ${isBanned ? 'Unban' : 'Ban'}
-                                </button>
-                                <button onclick="editDevice('${id}')" class="bg-sky-600 hover:bg-sky-500 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
-                                    Edit
-                                </button>
-                                <button onclick="deleteDevice('${id}')" class="bg-rose-600 hover:bg-rose-500 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
+            } catch (e) {
+                badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/40";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Network Error`;
+            }
         }
 
-        async function saveDevice(e) {
-            e.preventDefault();
-            const userName = document.getElementById('userName').value.trim();
-            const rawId = document.getElementById('deviceId').value.trim().toUpperCase();
-            const durationVal = document.getElementById('durationSelect').value;
-            const status = document.getElementById('deviceStatus').value;
-
-            if (!userName || !rawId) {
-                alert("Please fill name and device ID");
-                return;
-            }
-
-            let days = 5;
-            if (durationVal === 'custom') {
-                days = parseInt(document.getElementById('customDaysInput').value) || 1;
-            } else {
-                days = parseInt(durationVal);
-            }
-
-            const expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
+        async function setAppStatus(newStatus) {
+            const notice = document.getElementById('noticeMessage').value.trim() || 'অ্যাপ বর্তমানে এডমিন দ্বারা বন্ধ রাখা হয়েছে।';
 
             const payload = {
-                deviceId: rawId,
-                userName: userName,
-                status: status,
-                expiryTimestamp: expiryTimestamp,
-                addedDate: new Date().toISOString()
+                status: newStatus,
+                isAppOn: newStatus === 'on',
+                notice: notice,
+                updatedAt: new Date().toISOString()
             };
 
-            const targetUrl = `https://admin-pnal-ed74f-default-rtdb.firebaseio.com/devices/${rawId}.json`;
-
             try {
-                const res = await fetch(targetUrl, {
+                const res = await fetch(CONFIG_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    alert(`Success! Device ${rawId} (${userName}) saved for ${days} days.`);
-                    resetForm();
-                    loadDevices();
+                    alert(`Success! App is now turned ${newStatus.toUpperCase()} (${newStatus === 'on' ? 'চালু 🟢' : 'বন্ধ 🔴'}).`);
+                    loadAppConfig();
                 } else {
-                    alert("Save failed with status: " + res.status);
+                    alert("Failed to update status on Firebase.");
                 }
-            } catch (err) {
-                alert("Error saving: " + err.message);
+            } catch (e) {
+                alert("Error updating status: " + e.message);
             }
         }
 
-        async function toggleBan(deviceId, banState) {
-            const status = banState ? "banned" : "approved";
-            const targetUrl = `https://admin-pnal-ed74f-default-rtdb.firebaseio.com/devices/${deviceId}/status.json`;
+        async function saveNoticeOnly() {
+            const notice = document.getElementById('noticeMessage').value.trim();
+            if (!notice) {
+                alert("Please write a notice message.");
+                return;
+            }
 
             try {
-                const res = await fetch(targetUrl, {
+                const res = await fetch("https://admin-pnal-ed74f-default-rtdb.firebaseio.com/app_config/notice.json", {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(status)
+                    body: JSON.stringify(notice)
                 });
+
                 if (res.ok) {
-                    loadDevices();
+                    alert("Notice message saved successfully!");
+                    loadAppConfig();
                 }
-            } catch (err) {
-                alert("Failed: " + err.message);
+            } catch (e) {
+                alert("Error saving notice: " + e.message);
             }
-        }
-
-        function editDevice(deviceId) {
-            const dev = allDevices[deviceId];
-            if (!dev) return;
-
-            document.getElementById('userName').value = dev.userName || '';
-            document.getElementById('deviceId').value = deviceId;
-            document.getElementById('deviceStatus').value = dev.status || 'approved';
-            document.getElementById('formTitle').innerText = "Edit Device Access";
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        async function deleteDevice(deviceId) {
-            if (!confirm(`Are you sure you want to delete ${deviceId}?`)) return;
-
-            const targetUrl = `https://admin-pnal-ed74f-default-rtdb.firebaseio.com/devices/${deviceId}.json`;
-            try {
-                const res = await fetch(targetUrl, { method: 'DELETE' });
-                if (res.ok) {
-                    loadDevices();
-                }
-            } catch (err) {
-                alert("Delete failed: " + err.message);
-            }
-        }
-
-        function resetForm() {
-            document.getElementById('deviceForm').reset();
-            document.getElementById('formTitle').innerText = "Add / Approve Device";
-            document.getElementById('customDaysBox').classList.add('hidden');
         }
 
         // Initial Load
-        loadDevices();
+        loadAppConfig();
     </script>
 </body>
 </html>

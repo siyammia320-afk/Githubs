@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
-import com.example.network.DeviceActivationService
+import com.example.network.AppConfigService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -54,9 +54,10 @@ data class AccountCreatorUiState(
     val successMessage: String? = null,
     val showTelegramDialog: Boolean = false,
     val deviceId: String = "",
-    val isActivated: Boolean = false,
-    val isCheckingActivation: Boolean = false,
-    val activationStatusMessage: String = "Checking device status...",
+    val isActivated: Boolean = true,
+    val isAppOn: Boolean = true,
+    val isCheckingAppStatus: Boolean = false,
+    val appStatusMessage: String = "Checking app status...",
     val facebookRanges: List<String> = emptyList(),
     val isLoadingRanges: Boolean = false,
     val isFetchingNumber: Boolean = false,
@@ -95,7 +96,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val savedCountryCode = prefsRepository.selectedCountryCode
         val savedCountry = Country.fromCode(savedCountryCode)
         val showTelegram = !prefsRepository.isTelegramJoined
-        val devId = DeviceActivationService.getDeviceId(application)
 
         val pServer = prefsRepository.proxyServer
         val pPort = prefsRepository.proxyPort
@@ -111,10 +111,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             passwordInput = savedPassword,
             selectedCountry = savedCountry,
             showTelegramDialog = showTelegram,
-            deviceId = devId,
-            isActivated = false,
-            isCheckingActivation = true,
-            activationStatusMessage = "Checking activation...",
+            isActivated = true,
+            isAppOn = true,
+            isCheckingAppStatus = true,
+            appStatusMessage = "Checking app status...",
             proxyServer = pServer,
             proxyPort = pPort,
             proxyUsername = pUser,
@@ -125,8 +125,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeNumbers = savedActiveNumbers
         )
 
-        // Start periodic activation check (every 1 minute)
-        startPeriodicActivationCheck()
+        // Start periodic app status check (every 30 seconds)
+        startPeriodicAppStatusCheck()
 
         // Fetch Facebook live ranges
         refreshFacebookRanges()
@@ -135,11 +135,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startOtpPolling()
     }
 
-    private fun startPeriodicActivationCheck() {
+    private fun startPeriodicAppStatusCheck() {
         viewModelScope.launch {
             while (isActive) {
-                checkDeviceActivationInternal()
-                delay(60_000) // repeat every 60 seconds (1 minute)
+                checkAppStatusInternal()
+                delay(30_000) // repeat every 30 seconds
             }
         }
     }
@@ -269,8 +269,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onRangeClicked(rangeCode: String) {
         val currentState = _uiState.value
-        if (!currentState.isActivated) {
-            _uiState.value = currentState.copy(errorMessage = "Device not activated! Please activate your device first.")
+        if (!currentState.isAppOn) {
+            _uiState.value = currentState.copy(errorMessage = currentState.appStatusMessage)
             return
         }
 
@@ -323,22 +323,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveActiveNumbersToPrefs(emptyList())
     }
 
-    fun checkDeviceActivationManually() {
+    fun checkAppStatusManually() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
-                isCheckingActivation = true,
-                activationStatusMessage = "Re-checking activation..."
+                isCheckingAppStatus = true,
+                appStatusMessage = "Checking app status..."
             )
-            checkDeviceActivationInternal()
+            checkAppStatusInternal()
         }
     }
 
-    private suspend fun checkDeviceActivationInternal() {
-        val (active, message) = DeviceActivationService.checkActivation(getApplication())
+    fun checkDeviceActivationManually() {
+        checkAppStatusManually()
+    }
+
+    private suspend fun checkAppStatusInternal() {
+        val res = AppConfigService.checkAppStatus()
         _uiState.value = _uiState.value.copy(
-            isActivated = active,
-            isCheckingActivation = false,
-            activationStatusMessage = message
+            isAppOn = res.isAppOn,
+            isActivated = true,
+            isCheckingAppStatus = false,
+            appStatusMessage = res.message
         )
     }
 

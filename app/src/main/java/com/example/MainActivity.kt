@@ -37,11 +37,16 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.History
+import android.provider.Settings
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.ui.text.style.TextAlign
+import com.example.service.FloatingWidgetService
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
@@ -163,6 +168,82 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    if (!uiState.isAppOn) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0F172A))
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFFEF4444), RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF7F1D1D)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PowerSettingsNew,
+                            contentDescription = null,
+                            tint = Color(0xFFFCA5A5),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "APP IS CURRENTLY OFF 🚫",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = uiState.appStatusMessage,
+                        fontSize = 14.sp,
+                        color = Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Button(
+                        onClick = { viewModel.checkAppStatusManually() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        if (uiState.isCheckingAppStatus) {
+                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                                Text("RECHECK APP STATUS", fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -273,9 +354,9 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                                 color = Color.White
                             )
                             Text(
-                                text = if (uiState.isActivated) "ACTIVATED • AUTO OTP 3s" else "ACTIVATION REQUIRED",
+                                text = "ONLINE • AUTO OTP 3s",
                                 fontSize = 10.sp,
-                                color = if (uiState.isActivated) Color(0xFF10B981) else Color(0xFFEF4444),
+                                color = Color(0xFF10B981),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -302,6 +383,8 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 .padding(innerPadding)
                 .background(Color(0xFF090D16))
         ) {
+            FloatingWidgetControlCard()
+
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = Color(0xFF0F172A),
@@ -474,203 +557,6 @@ fun GetNumberTabContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Device Activation Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        1.dp,
-                        if (uiState.isActivated) Color(0xFF059669) else Color(0xFF991B1B),
-                        RoundedCornerShape(12.dp)
-                    )
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Smartphone,
-                                contentDescription = null,
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "DEVICE ACTIVATION STATUS",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-
-                        // Status Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (uiState.isActivated) Color(0xFF065F46) else Color(0xFF7F1D1D)
-                                )
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = if (uiState.isActivated) "ACTIVATED" else "NOT ACTIVATED",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (uiState.isActivated) Color(0xFF34D399) else Color(0xFFFCA5A5)
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = Color(0xFF1E293B))
-
-                    // Device ID Display
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Your Device ID:",
-                            fontSize = 11.sp,
-                            color = Color(0xFF94A3B8)
-                        )
-                        Text(
-                            text = uiState.deviceId,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF38BDF8)
-                        )
-                    }
-
-                    // Action Buttons: Copy Device ID & Reload Status
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { onCopyDeviceId(uiState.deviceId) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(38.dp)
-                                .testTag("copy_device_id_button")
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                Text("COPY DEVICE ID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-
-                        Button(
-                            onClick = onCheckActivation,
-                            enabled = !uiState.isCheckingActivation,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF334155),
-                                disabledContainerColor = Color(0xFF1E293B)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(38.dp)
-                                .testTag("reload_activation_button")
-                        ) {
-                            if (uiState.isCheckingActivation) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    strokeWidth = 2.dp,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            } else {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Text("RELOAD STATUS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Warning / Unactivated Lock Banner
-        if (!uiState.isActivated) {
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF450A0A)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, Color(0xFFB91C1C), RoundedCornerShape(12.dp))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = "Device Not Activated!",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFCA5A5)
-                            )
-                        }
-
-                        Text(
-                            text = "Your Device ID is not found in the official activated list. Please copy your Device ID above and send it to the admin to enable account creation.",
-                            fontSize = 12.sp,
-                            color = Color(0xFFFECACA)
-                        )
-
-                        Button(
-                            onClick = {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/INCOME_FREE_BD"))
-                                    context.startActivity(intent)
-                                } catch (_: Exception) { }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Text("CONTACT ADMIN ON TELEGRAM", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // Facebook Live Ranges Selection Section
         item {
             Card(
@@ -750,7 +636,7 @@ fun GetNumberTabContent(
 
                                 Button(
                                     onClick = { onRangeClicked(rangeCode) },
-                                    enabled = uiState.isActivated && !uiState.isFetchingNumber && !uiState.isCreating,
+                                    enabled = !uiState.isFetchingNumber && !uiState.isCreating,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B)
                                     ),
@@ -1036,7 +922,7 @@ fun CreateAccountTabContent(
                     // Country Selection Dropdown for Names
                     CountryDropdownSelector(
                         selectedCountry = uiState.selectedCountry,
-                        enabled = uiState.isActivated,
+                        enabled = true,
                         onCountrySelected = onCountrySelected
                     )
 
@@ -1044,7 +930,7 @@ fun CreateAccountTabContent(
                     OutlinedTextField(
                         value = uiState.passwordInput,
                         onValueChange = onPasswordChange,
-                        enabled = uiState.isActivated,
+                        enabled = true,
                         label = { Text("Password (Auto Saved)", color = Color(0xFF10B981)) },
                         placeholder = { Text("At least 6 characters", color = Color(0xFF475569)) },
                         leadingIcon = {
@@ -1079,7 +965,7 @@ fun CreateAccountTabContent(
                     // CREATE NOW Button
                     Button(
                         onClick = onCreateAccount,
-                        enabled = uiState.isActivated && !uiState.isCreating,
+                        enabled = !uiState.isCreating,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0284C7),
                             disabledContainerColor = Color(0xFF1E293B)
@@ -2023,3 +1909,178 @@ fun ProxySettingsDialog(
         }
     )
 }
+
+@Composable
+fun FloatingWidgetControlCard() {
+    val context = LocalContext.current
+    val isFloatingActive by FloatingWidgetService.isRunning.collectAsStateWithLifecycle()
+    var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+
+    LaunchedEffect(Unit) {
+        hasOverlayPermission = Settings.canDrawOverlays(context)
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .border(
+                1.dp,
+                if (isFloatingActive) Color(0xFF10B981) else Color(0xFF0284C7),
+                RoundedCornerShape(14.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(if (isFloatingActive) Color(0xFF065F46) else Color(0xFF1E3A8A)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PowerSettingsNew,
+                            contentDescription = null,
+                            tint = if (isFloatingActive) Color(0xFF34D399) else Color(0xFF38BDF8),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "FLOATING BUTTON CONTROLLER",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = if (isFloatingActive) "FLOATING WIDGET ACTIVE ⚡" else "FLOATING WIDGET OFF",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isFloatingActive) Color(0xFF34D399) else Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isFloatingActive) Color(0xFF065F46) else Color(0xFF334155))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (isFloatingActive) "ON 🟢" else "OFF 🔴",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isFloatingActive) Color(0xFF34D399) else Color(0xFFFCA5A5)
+                    )
+                }
+            }
+
+            Text(
+                text = "স্টার্ট বাটনে চাপ দিলে একটি ভাসমান বাটন আসবে। এটি স্ক্রিনে যেকোনো জায়গায় সরানো যাবে। বাটনে চাপ দিলে ডায়ালগের মতো ফুল অ্যাপ আসবে। X চাপলে আবার বন্ধ হবে।",
+                fontSize = 11.sp,
+                color = Color(0xFF94A3B8),
+                lineHeight = 15.sp
+            )
+
+            if (!hasOverlayPermission) {
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:${context.packageName}")
+                            )
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Text("ALLOW DISPLAY OVER OTHER APPS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            hasOverlayPermission = Settings.canDrawOverlays(context)
+                            if (hasOverlayPermission) {
+                                FloatingWidgetService.startService(context)
+                            } else {
+                                val intent = Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}")
+                                )
+                                context.startActivity(intent)
+                            }
+                        },
+                        enabled = !isFloatingActive,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF059669),
+                            disabledContainerColor = Color(0xFF1E293B)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f).height(42.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Text("START FLOATING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            FloatingWidgetService.stopService(context)
+                        },
+                        enabled = isFloatingActive,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFDC2626),
+                            disabledContainerColor = Color(0xFF1E293B)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f).height(42.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Text("STOP FLOATING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
