@@ -27,6 +27,9 @@ import com.example.data.Country
 
 import com.example.network.VoltxApiService
 import com.example.network.VoltxOtpItem
+import com.example.util.NotificationHelper
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -64,6 +67,9 @@ data class AccountCreatorUiState(
     val proxyPort: String = "",
     val proxyUsername: String = "",
     val proxyPassword: String = "",
+    val isProxyEnabled: Boolean = true,
+    val isCustomUserAgentEnabled: Boolean = false,
+    val customUserAgent: String = "",
     val proxyStatus: String = "DISCONNECTED",
     val showProxyDialog: Boolean = false
 )
@@ -95,6 +101,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val pPort = prefsRepository.proxyPort
         val pUser = prefsRepository.proxyUsername
         val pPass = prefsRepository.proxyPassword
+        val isProxyOn = prefsRepository.isProxyEnabled
+        val isCustomUaOn = prefsRepository.isCustomUserAgentEnabled
+        val customUa = prefsRepository.customUserAgent
+
+        val savedActiveNumbers = loadActiveNumbersFromPrefs()
 
         _uiState.value = _uiState.value.copy(
             passwordInput = savedPassword,
@@ -107,7 +118,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             proxyServer = pServer,
             proxyPort = pPort,
             proxyUsername = pUser,
-            proxyPassword = pPass
+            proxyPassword = pPass,
+            isProxyEnabled = isProxyOn,
+            isCustomUserAgentEnabled = isCustomUaOn,
+            customUserAgent = customUa,
+            activeNumbers = savedActiveNumbers
         )
 
         // Start periodic activation check (every 1 minute)
@@ -148,6 +163,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return d1.contains(d2) || d2.contains(d1)
     }
 
+    private fun saveActiveNumbersToPrefs(numbers: List<VoltxActiveNumber>) {
+        try {
+            val array = JSONArray()
+            for (item in numbers) {
+                val obj = JSONObject()
+                obj.put("phone", item.phone)
+                obj.put("rangeCode", item.rangeCode)
+                obj.put("timestamp", item.timestamp)
+                obj.put("otp", item.otp ?: "")
+                obj.put("rawMessage", item.rawMessage ?: "")
+                obj.put("isAutoCopied", item.isAutoCopied)
+                obj.put("accountUid", item.accountUid ?: "")
+                array.put(obj)
+            }
+            prefsRepository.activeNumbersJson = array.toString()
+        } catch (_: Exception) {}
+    }
+
+    private fun loadActiveNumbersFromPrefs(): List<VoltxActiveNumber> {
+        val jsonStr = prefsRepository.activeNumbersJson
+        if (jsonStr.isBlank()) return emptyList()
+        val list = mutableListOf<VoltxActiveNumber>()
+        try {
+            val array = JSONArray(jsonStr)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    VoltxActiveNumber(
+                        phone = obj.optString("phone"),
+                        rangeCode = obj.optString("rangeCode"),
+                        timestamp = obj.optString("timestamp"),
+                        otp = if (obj.optString("otp").isNotEmpty()) obj.optString("otp") else null,
+                        rawMessage = if (obj.optString("rawMessage").isNotEmpty()) obj.optString("rawMessage") else null,
+                        isAutoCopied = obj.optBoolean("isAutoCopied"),
+                        accountUid = if (obj.optString("accountUid").isNotEmpty()) obj.optString("accountUid") else null
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return list
+    }
+
     private suspend fun checkOtpsInternal() {
         val currentActives = _uiState.value.activeNumbers
         if (currentActives.isEmpty()) return
@@ -159,7 +216,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val match = otps.find { isPhoneNumberMatch(it.number, active.phone) }
             if (match != null && match.otp != "N/A") {
                 if (!active.isAutoCopied || active.otp != match.otp) {
-                    // Auto copy OTP to clipboard
+                    // Auto copy OTP to clipboard and show system notification
                     autoCopyOtpToClipboard(match.otp, active.phone)
                     active.copy(
                         otp = match.otp,
@@ -175,6 +232,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         _uiState.value = _uiState.value.copy(activeNumbers = updatedActives)
+        saveActiveNumbersToPrefs(updatedActives)
     }
 
     private fun autoCopyOtpToClipboard(otp: String, phone: String) {
@@ -182,10 +240,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val clip = ClipData.newPlainText("FB_OTP", otp)
         clipboard.setPrimaryClip(clip)
 
+        // Trigger system notification
+        NotificationHelper.showOtpNotification(getApplication(), otp, phone)
+
         _uiState.value = _uiState.value.copy(
             lastCopiedOtp = otp,
-            successMessage = "🎉 OTP Received & Auto-Copied: $otp for $phone!"
+            successMessage = "🎉 OTP RECV 💥💣: $otp for $phone!"
         )
+    }
+
+    fun manualRefreshOtps() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(successMessage = "Refreshing OTP Inbox...")
+            checkOtpsInternal()
+        }
     }
 
     fun refreshFacebookRanges() {
@@ -242,6 +310,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     activeNumbers = newActiveList,
                     successMessage = "📋 Number $number received & Auto-Copied to Clipboard!"
                 )
+                saveActiveNumbersToPrefs(newActiveList)
             }
         }
     }
@@ -251,6 +320,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeNumbers = emptyList(),
             successMessage = "Inbox cleared!"
         )
+        saveActiveNumbersToPrefs(emptyList())
     }
 
     fun checkDeviceActivationManually() {
@@ -285,19 +355,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(showProxyDialog = false)
     }
 
-    fun saveProxySettings(server: String, port: String, user: String, pass: String) {
+    fun saveProxySettings(
+        server: String,
+        port: String,
+        user: String,
+        pass: String,
+        isProxyEnabled: Boolean = true,
+        isCustomUserAgentEnabled: Boolean = false,
+        customUserAgent: String = ""
+    ) {
         prefsRepository.proxyServer = server.trim()
         prefsRepository.proxyPort = port.trim()
         prefsRepository.proxyUsername = user.trim()
         prefsRepository.proxyPassword = pass.trim()
+        prefsRepository.isProxyEnabled = isProxyEnabled
+        prefsRepository.isCustomUserAgentEnabled = isCustomUserAgentEnabled
+        prefsRepository.customUserAgent = customUserAgent.trim()
 
         _uiState.value = _uiState.value.copy(
             proxyServer = server.trim(),
             proxyPort = port.trim(),
             proxyUsername = user.trim(),
             proxyPassword = pass.trim(),
+            isProxyEnabled = isProxyEnabled,
+            isCustomUserAgentEnabled = isCustomUserAgentEnabled,
+            customUserAgent = customUserAgent.trim(),
             showProxyDialog = false,
-            successMessage = "Proxy Settings Saved!"
+            successMessage = "Settings Saved!"
         )
     }
 
@@ -319,17 +403,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentState = _uiState.value
         val password = currentState.passwordInput.ifEmpty { "Pass123456" }
 
-        val hasProxy = currentState.proxyServer.isNotBlank() && currentState.proxyPort.isNotBlank()
+        val useProxy = currentState.isProxyEnabled && currentState.proxyServer.isNotBlank() && currentState.proxyPort.isNotBlank()
+
+        val proxyServerToUse = if (useProxy) currentState.proxyServer else ""
+        val proxyPortToUse = if (useProxy) currentState.proxyPort else ""
+        val proxyUserToUse = if (useProxy) currentState.proxyUsername else ""
+        val proxyPassToUse = if (useProxy) currentState.proxyPassword else ""
 
         _uiState.value = currentState.copy(
             isCreating = true,
             errorMessage = null,
-            proxyStatus = if (hasProxy) "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})..." else "DISCONNECTED"
+            proxyStatus = if (useProxy) "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})..." else "DIRECT IP (PROXY OFF)"
         )
 
         viewModelScope.launch {
             try {
-                if (hasProxy) {
+                if (useProxy) {
                     delay(400) // Simulate proxy connection startup
                     _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTED (PROXY ACTIVE)")
                 }
@@ -338,10 +427,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     phoneInput = phone,
                     passwordInput = password,
                     country = currentState.selectedCountry,
-                    proxyServer = currentState.proxyServer,
-                    proxyPort = currentState.proxyPort,
-                    proxyUsername = currentState.proxyUsername,
-                    proxyPassword = currentState.proxyPassword
+                    proxyServer = proxyServerToUse,
+                    proxyPort = proxyPortToUse,
+                    proxyUsername = proxyUserToUse,
+                    proxyPassword = proxyPassToUse,
+                    customUserAgent = currentState.customUserAgent,
+                    isCustomUserAgentEnabled = currentState.isCustomUserAgentEnabled
                 )
 
                 if (result.success) {

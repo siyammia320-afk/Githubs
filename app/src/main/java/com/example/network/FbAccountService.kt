@@ -41,7 +41,9 @@ object FbAccountService {
         proxyServer: String = "",
         proxyPort: String = "",
         proxyUsername: String = "",
-        proxyPassword: String = ""
+        proxyPassword: String = "",
+        customUserAgent: String = "",
+        isCustomUserAgentEnabled: Boolean = false
     ): AccountResult = withContext(Dispatchers.IO) {
         val datrCookie = generateDatrCookie()
         val (fname, lname) = country.getRandomFirstAndLastName()
@@ -69,7 +71,12 @@ object FbAccountService {
             client
         }
 
-        val userAgent = "Mozilla/5.0 (Linux; Android 12; itel S665L Build/SP1A.210812.016) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.91 Mobile Safari/537.36"
+        val defaultUserAgent = "Mozilla/5.0 (Linux; Android 12; itel S665L Build/SP1A.210812.016) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.91 Mobile Safari/537.36"
+        val userAgent = if (isCustomUserAgentEnabled && customUserAgent.isNotBlank()) {
+            customUserAgent.trim()
+        } else {
+            defaultUserAgent
+        }
 
         val formBodyBuilder = FormBody.Builder()
             .add("ccp", "2")

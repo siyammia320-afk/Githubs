@@ -70,6 +70,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -97,10 +99,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AccountEntity
 import com.example.ui.MainViewModel
+import com.example.ui.SplashScreen
 import com.example.ui.VoltxActiveNumber
 import com.example.ui.theme.FBTheme
 
@@ -149,6 +153,13 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
+    var showSplashScreen by rememberSaveable { mutableStateOf(true) }
+
+    if (showSplashScreen) {
+        SplashScreen(onFinished = { showSplashScreen = false })
+        return
+    }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accountsHistory by viewModel.accountHistory.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -430,7 +441,8 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                     onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
                     onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
                     onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
-                    onClearInbox = viewModel::clearInbox
+                    onClearInbox = viewModel::clearInbox,
+                    onReloadInbox = viewModel::manualRefreshOtps
                 )
                 3 -> AccountHistoryTabContent(
                     accounts = accountsHistory,
@@ -919,7 +931,7 @@ fun CreateAccountTabContent(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "🌐 PROXY AUTO SYSTEM",
+                            text = "🌐 NETWORK & UA SYSTEM",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF38BDF8)
@@ -935,10 +947,11 @@ fun CreateAccountTabContent(
                             }
                         )
                         Text(
-                            text = if (uiState.proxyServer.isNotEmpty())
-                                "Configured: ${uiState.proxyServer}:${uiState.proxyPort}"
-                            else
-                                "No Proxy set (Tap ⚙️ to configure)",
+                            text = buildString {
+                                append(if (uiState.isProxyEnabled) "Proxy: ON" else "Proxy: OFF (Direct IP)")
+                                append(" | ")
+                                append(if (uiState.isCustomUserAgentEnabled) "UA: Custom" else "UA: Original")
+                            },
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
@@ -1221,7 +1234,8 @@ fun InboxTabContent(
     onCopyOtp: (String) -> Unit,
     onCopyPhone: (String) -> Unit,
     onCopyUid: (String) -> Unit,
-    onClearInbox: () -> Unit = {}
+    onClearInbox: () -> Unit = {},
+    onReloadInbox: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1235,7 +1249,7 @@ fun InboxTabContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "📥 OTP Inbox (${activeNumbers.size})",
                     fontSize = 16.sp,
@@ -1243,19 +1257,29 @@ fun InboxTabContent(
                     color = Color.White
                 )
                 Text(
-                    text = "Checking OTP auto every 3s • Auto-copied on arrival",
+                    text = "Auto check every 3s • Saved offline • Auto-copied",
                     fontSize = 11.sp,
                     color = Color(0xFF10B981)
                 )
             }
 
-            if (activeNumbers.isNotEmpty()) {
-                IconButton(onClick = onClearInbox) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onReloadInbox) {
                     Icon(
-                        Icons.Default.DeleteSweep,
-                        contentDescription = "Clear Inbox",
-                        tint = Color(0xFFEF4444)
+                        Icons.Default.Refresh,
+                        contentDescription = "Reload Inbox",
+                        tint = Color(0xFF38BDF8)
                     )
+                }
+
+                if (activeNumbers.isNotEmpty()) {
+                    IconButton(onClick = onClearInbox) {
+                        Icon(
+                            Icons.Default.DeleteSweep,
+                            contentDescription = "Clear Inbox",
+                            tint = Color(0xFFEF4444)
+                        )
+                    }
                 }
             }
         }
@@ -1784,13 +1808,17 @@ fun CountryDropdownSelector(
 @Composable
 fun ProxySettingsDialog(
     uiState: com.example.ui.AccountCreatorUiState,
-    onSave: (String, String, String, String) -> Unit,
+    onSave: (server: String, port: String, user: String, pass: String, isProxyEnabled: Boolean, isCustomUaEnabled: Boolean, customUa: String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var isProxyOn by remember { mutableStateOf(uiState.isProxyEnabled) }
     var server by remember { mutableStateOf(uiState.proxyServer) }
     var port by remember { mutableStateOf(uiState.proxyPort) }
     var username by remember { mutableStateOf(uiState.proxyUsername) }
     var password by remember { mutableStateOf(uiState.proxyPassword) }
+
+    var isCustomUaOn by remember { mutableStateOf(uiState.isCustomUserAgentEnabled) }
+    var customUa by remember { mutableStateOf(uiState.customUserAgent) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1801,88 +1829,190 @@ fun ProxySettingsDialog(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF38BDF8))
-                Text("Proxy Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("App & Network Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = "Proxy will automatically enable during Account Creation and disable when finished.",
-                    fontSize = 11.sp,
-                    color = Color(0xFF94A3B8)
-                )
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                item {
+                    // --- PROXY SETTINGS SECTION ---
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                                    Text("Proxy System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
+                                Switch(
+                                    checked = isProxyOn,
+                                    onCheckedChange = { isProxyOn = it },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF10B981),
+                                        uncheckedThumbColor = Color.Gray,
+                                        uncheckedTrackColor = Color(0xFF334155)
+                                    )
+                                )
+                            }
+                            Text(
+                                text = if (isProxyOn) "Proxy ON (Account created via Proxy)" else "Proxy OFF (Account created via Direct Phone IP)",
+                                fontSize = 11.sp,
+                                color = if (isProxyOn) Color(0xFF10B981) else Color(0xFFF59E0B)
+                            )
 
-                OutlinedTextField(
-                    value = server,
-                    onValueChange = { server = it },
-                    label = { Text("Proxy Server / IP", color = Color(0xFF38BDF8)) },
-                    placeholder = { Text("e.g. 192.168.1.1", color = Color.Gray) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                            if (isProxyOn) {
+                                OutlinedTextField(
+                                    value = server,
+                                    onValueChange = { server = it },
+                                    label = { Text("Proxy Server / IP", color = Color(0xFF38BDF8)) },
+                                    placeholder = { Text("e.g. 192.168.1.1", color = Color.Gray) },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF38BDF8),
+                                        unfocusedBorderColor = Color(0xFF334155),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                OutlinedTextField(
-                    value = port,
-                    onValueChange = { port = it },
-                    label = { Text("Proxy Port", color = Color(0xFF38BDF8)) },
-                    placeholder = { Text("e.g. 8080", color = Color.Gray) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                                OutlinedTextField(
+                                    value = port,
+                                    onValueChange = { port = it },
+                                    label = { Text("Proxy Port", color = Color(0xFF38BDF8)) },
+                                    placeholder = { Text("e.g. 8080", color = Color.Gray) },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF38BDF8),
+                                        unfocusedBorderColor = Color(0xFF334155),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username (Optional)", color = Color(0xFF38BDF8)) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                                OutlinedTextField(
+                                    value = username,
+                                    onValueChange = { username = it },
+                                    label = { Text("Username (Optional)", color = Color(0xFF38BDF8)) },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF38BDF8),
+                                        unfocusedBorderColor = Color(0xFF334155),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password (Optional)", color = Color(0xFF38BDF8)) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it },
+                                    label = { Text("Password (Optional)", color = Color(0xFF38BDF8)) },
+                                    singleLine = true,
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF38BDF8),
+                                        unfocusedBorderColor = Color(0xFF334155),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    // --- USER AGENT SETTINGS SECTION ---
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.Smartphone, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                                    Text("User-Agent System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
+                                Switch(
+                                    checked = isCustomUaOn,
+                                    onCheckedChange = { isCustomUaOn = it },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF10B981),
+                                        uncheckedThumbColor = Color.Gray,
+                                        uncheckedTrackColor = Color(0xFF334155)
+                                    )
+                                )
+                            }
+                            Text(
+                                text = if (isCustomUaOn) "Custom User-Agent ON (Uses saved User-Agent)" else "Custom User-Agent OFF (Uses phone original User-Agent)",
+                                fontSize = 11.sp,
+                                color = if (isCustomUaOn) Color(0xFF10B981) else Color(0xFFF59E0B)
+                            )
+
+                            if (isCustomUaOn) {
+                                OutlinedTextField(
+                                    value = customUa,
+                                    onValueChange = { customUa = it },
+                                    label = { Text("Custom User-Agent", color = Color(0xFF38BDF8)) },
+                                    placeholder = { Text("Mozilla/5.0 (Linux; Android...)", color = Color.Gray) },
+                                    minLines = 2,
+                                    maxLines = 4,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF38BDF8),
+                                        unfocusedBorderColor = Color(0xFF334155),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(server, port, username, password) },
+                onClick = { onSave(server, port, username, password, isProxyOn, isCustomUaOn, customUa) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
             ) {
-                Text("SAVE PROXY", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("SAVE SETTINGS", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
