@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -324,246 +327,277 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    // First-Time Telegram Join Dialog
-    if (uiState.showTelegramDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissTelegramDialog() },
-            containerColor = Color(0xFF0F172A),
-            titleContentColor = Color.White,
-            textContentColor = Color(0xFF94A3B8),
-            title = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            topBar = {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF0F172A))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = null,
-                        tint = Color(0xFF38BDF8)
-                    )
-                    Text(text = "Join Official Telegram", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-            },
-            text = {
-                Text(
-                    text = "Please join our official Telegram channel to stay updated with new features and announcements!",
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/INCOME_FREE_BD")).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) { }
-                        viewModel.dismissTelegramDialog()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-                ) {
-                    Text("JOIN CHANNEL", fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { viewModel.dismissTelegramDialog() },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
-                ) {
-                    Text("Close", color = Color.LightGray)
+                    IconButton(
+                        onClick = viewModel::openProxyDialog,
+                        modifier = Modifier.testTag("settings_proxy_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Proxy Settings",
+                            tint = Color(0xFF38BDF8)
+                        )
+                    }
                 }
             }
-        )
-    }
-
-    if (uiState.showProxyDialog) {
-        ProxySettingsDialog(
-            uiState = uiState,
-            onSave = viewModel::saveProxySettings,
-            onDismiss = viewModel::closeProxyDialog
-        )
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            Row(
+        ) { innerPadding ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF0F172A))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(Color(0xFF090D16))
             ) {
-                IconButton(
-                    onClick = viewModel::openProxyDialog,
-                    modifier = Modifier.testTag("settings_proxy_btn")
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color(0xFF0F172A),
+                    contentColor = Color.White,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                            color = Color(0xFF38BDF8),
+                            height = 3.dp
+                        )
+                    }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Proxy Settings",
-                        tint = Color(0xFF38BDF8)
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        modifier = Modifier.testTag("tab_get_number"),
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Smartphone,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 0) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "GET NUMBER",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (selectedTabIndex == 0) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        modifier = Modifier.testTag("tab_create"),
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.PersonAdd,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "Create",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (selectedTabIndex == 1) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 2,
+                        onClick = { selectedTabIndex = 2 },
+                        modifier = Modifier.testTag("tab_inbox"),
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "Inbox (${uiState.activeNumbers.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (selectedTabIndex == 2) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 3,
+                        onClick = { selectedTabIndex = 3 },
+                        modifier = Modifier.testTag("tab_history"),
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 3) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "Saved (${accountsHistory.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (selectedTabIndex == 3) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    )
+                }
+
+                when (selectedTabIndex) {
+                    0 -> GetNumberTabContent(
+                        uiState = uiState,
+                        onRangeClicked = viewModel::onRangeClicked,
+                        onRefreshRanges = viewModel::refreshFacebookRanges,
+                        onCopyDeviceId = { devId -> viewModel.copyToClipboard(context, devId, "DEVICE ID") },
+                        onCheckActivation = viewModel::checkDeviceActivationManually,
+                        onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "PHONE NUMBER") },
+                        onGoToCreate = { selectedTabIndex = 1 }
+                    )
+                    1 -> CreateAccountTabContent(
+                        uiState = uiState,
+                        onPhoneChange = viewModel::onPhoneChanged,
+                        onPasswordChange = viewModel::onPasswordChanged,
+                        onCountrySelected = viewModel::onCountrySelected,
+                        onCreateAccount = viewModel::createAccount,
+                        onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
+                        onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
+                        onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
+                        onGoToGetNumber = { selectedTabIndex = 0 },
+                        onOpenProxySettings = viewModel::openProxyDialog
+                    )
+                    2 -> InboxTabContent(
+                        activeNumbers = uiState.activeNumbers,
+                        onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
+                        onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
+                        onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
+                        onClearInbox = viewModel::clearInbox,
+                        onReloadInbox = viewModel::manualRefreshOtps
+                    )
+                    3 -> AccountHistoryTabContent(
+                        accounts = accountsHistory,
+                        onClearAll = viewModel::clearAllAccounts,
+                        onDeleteOne = viewModel::deleteAccount,
+                        onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
+                        onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
+                        onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") }
                     )
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFF090D16))
-        ) {
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = Color(0xFF0F172A),
-                contentColor = Color.White,
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
-                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                        color = Color(0xFF38BDF8),
-                        height = 3.dp
-                    )
-                }
-            ) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
-                    modifier = Modifier.testTag("tab_get_number"),
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Smartphone,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 0) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "GET NUMBER",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = if (selectedTabIndex == 0) Color.White else Color.Gray
-                            )
-                        }
-                    }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 },
-                    modifier = Modifier.testTag("tab_create"),
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.PersonAdd,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Create",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = if (selectedTabIndex == 1) Color.White else Color.Gray
-                            )
-                        }
-                    }
-                )
-                Tab(
-                    selected = selectedTabIndex == 2,
-                    onClick = { selectedTabIndex = 2 },
-                    modifier = Modifier.testTag("tab_inbox"),
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Email,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Inbox (${uiState.activeNumbers.size})",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = if (selectedTabIndex == 2) Color.White else Color.Gray
-                            )
-                        }
-                    }
-                )
-                Tab(
-                    selected = selectedTabIndex == 3,
-                    onClick = { selectedTabIndex = 3 },
-                    modifier = Modifier.testTag("tab_history"),
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.History,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 3) Color(0xFF38BDF8) else Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Saved (${accountsHistory.size})",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = if (selectedTabIndex == 3) Color.White else Color.Gray
-                            )
-                        }
-                    }
-                )
-            }
 
-            when (selectedTabIndex) {
-                0 -> GetNumberTabContent(
-                    uiState = uiState,
-                    onRangeClicked = viewModel::onRangeClicked,
-                    onRefreshRanges = viewModel::refreshFacebookRanges,
-                    onCopyDeviceId = { devId -> viewModel.copyToClipboard(context, devId, "DEVICE ID") },
-                    onCheckActivation = viewModel::checkDeviceActivationManually,
-                    onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "PHONE NUMBER") },
-                    onGoToCreate = { selectedTabIndex = 1 }
-                )
-                1 -> CreateAccountTabContent(
-                    uiState = uiState,
-                    onPhoneChange = viewModel::onPhoneChanged,
-                    onPasswordChange = viewModel::onPasswordChanged,
-                    onCountrySelected = viewModel::onCountrySelected,
-                    onCreateAccount = viewModel::createAccount,
-                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
-                    onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
-                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
-                    onGoToGetNumber = { selectedTabIndex = 0 },
-                    onOpenProxySettings = viewModel::openProxyDialog
-                )
-                2 -> InboxTabContent(
-                    activeNumbers = uiState.activeNumbers,
-                    onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
-                    onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
-                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
-                    onClearInbox = viewModel::clearInbox,
-                    onReloadInbox = viewModel::manualRefreshOtps
-                )
-                3 -> AccountHistoryTabContent(
-                    accounts = accountsHistory,
-                    onClearAll = viewModel::clearAllAccounts,
-                    onDeleteOne = viewModel::deleteAccount,
-                    onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
-                    onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
-                    onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") }
-                )
+        // First-Time Telegram Join Dialog Overlay
+        if (uiState.showTelegramDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .clickable(
+                        onClick = { viewModel.dismissTelegramDialog() },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(16.dp)
+                        .clickable(
+                            onClick = { },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFF1E293B))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Send,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8)
+                            )
+                            Text(text = "Join Official Telegram", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                        }
+
+                        Text(
+                            text = "Please join our official Telegram channel to stay updated with new features and announcements!",
+                            fontSize = 14.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { viewModel.dismissTelegramDialog() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+                            ) {
+                                Text("Close", color = Color.LightGray)
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/INCOME_FREE_BD")).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) { }
+                                    viewModel.dismissTelegramDialog()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                            ) {
+                                Text("JOIN CHANNEL", fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        if (uiState.showProxyDialog) {
+            ProxySettingsDialog(
+                uiState = uiState,
+                onSave = viewModel::saveProxySettings,
+                onDismiss = viewModel::closeProxyDialog
+            )
         }
     }
 }
@@ -1734,210 +1768,252 @@ fun ProxySettingsDialog(
     var isCustomUaOn by remember { mutableStateOf(uiState.isCustomUserAgentEnabled) }
     var customUa by remember { mutableStateOf(uiState.customUserAgent) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0F172A),
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF38BDF8))
-                Text("App & Network Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-        },
-        text = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    // --- PROXY SETTINGS SECTION ---
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
-                                    Text("Proxy System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                                Switch(
-                                    checked = isProxyOn,
-                                    onCheckedChange = { isProxyOn = it },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF10B981),
-                                        uncheckedThumbColor = Color.Gray,
-                                        uncheckedTrackColor = Color(0xFF334155)
-                                    )
-                                )
-                            }
-                            Text(
-                                text = if (isProxyOn) "Proxy ON (Account created via Proxy)" else "Proxy OFF (Account created via Direct Phone IP)",
-                                fontSize = 11.sp,
-                                color = if (isProxyOn) Color(0xFF10B981) else Color(0xFFF59E0B)
-                            )
-
-                            if (isProxyOn) {
-                                OutlinedTextField(
-                                    value = server,
-                                    onValueChange = { server = it },
-                                    label = { Text("Proxy Server / IP", color = Color(0xFF38BDF8)) },
-                                    placeholder = { Text("e.g. 192.168.1.1", color = Color.Gray) },
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF38BDF8),
-                                        unfocusedBorderColor = Color(0xFF334155),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = port,
-                                    onValueChange = { port = it },
-                                    label = { Text("Proxy Port", color = Color(0xFF38BDF8)) },
-                                    placeholder = { Text("e.g. 8080", color = Color.Gray) },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF38BDF8),
-                                        unfocusedBorderColor = Color(0xFF334155),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = username,
-                                    onValueChange = { username = it },
-                                    label = { Text("Username (Optional)", color = Color(0xFF38BDF8)) },
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF38BDF8),
-                                        unfocusedBorderColor = Color(0xFF334155),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = password,
-                                    onValueChange = { password = it },
-                                    label = { Text("Password (Optional)", color = Color(0xFF38BDF8)) },
-                                    singleLine = true,
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF38BDF8),
-                                        unfocusedBorderColor = Color(0xFF334155),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    // --- USER AGENT SETTINGS SECTION ---
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(Icons.Default.Smartphone, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
-                                    Text("User-Agent System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                                Switch(
-                                    checked = isCustomUaOn,
-                                    onCheckedChange = { isCustomUaOn = it },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Color(0xFF10B981),
-                                        uncheckedThumbColor = Color.Gray,
-                                        uncheckedTrackColor = Color(0xFF334155)
-                                    )
-                                )
-                            }
-                            Text(
-                                text = if (isCustomUaOn) "Custom User-Agent ON (Uses saved User-Agent)" else "Custom User-Agent OFF (Uses phone original User-Agent)",
-                                fontSize = 11.sp,
-                                color = if (isCustomUaOn) Color(0xFF10B981) else Color(0xFFF59E0B)
-                            )
-
-                            if (isCustomUaOn) {
-                                OutlinedTextField(
-                                    value = customUa,
-                                    onValueChange = { customUa = it },
-                                    label = { Text("Custom User-Agent", color = Color(0xFF38BDF8)) },
-                                    placeholder = { Text("Mozilla/5.0 (Linux; Android...)", color = Color.Gray) },
-                                    minLines = 2,
-                                    maxLines = 4,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF38BDF8),
-                                        unfocusedBorderColor = Color(0xFF334155),
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(server, port, username, password, isProxyOn, isCustomUaOn, customUa) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-            ) {
-                Text("SAVE SETTINGS", fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.75f))
+            .clickable(
                 onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.85f)
+                .padding(12.dp)
+                .clickable(
+                    onClick = { },
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFF1E293B))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                Text("Cancel", color = Color.LightGray)
+                // Title
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF38BDF8))
+                    Text("App & Network Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+
+                // Scrollable content
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    item {
+                        // --- PROXY SETTINGS SECTION ---
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                                        Text("Proxy System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    }
+                                    Switch(
+                                        checked = isProxyOn,
+                                        onCheckedChange = { isProxyOn = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF10B981),
+                                            uncheckedThumbColor = Color.Gray,
+                                            uncheckedTrackColor = Color(0xFF334155)
+                                        )
+                                    )
+                                }
+                                Text(
+                                    text = if (isProxyOn) "Proxy ON (Account created via Proxy)" else "Proxy OFF (Account created via Direct Phone IP)",
+                                    fontSize = 11.sp,
+                                    color = if (isProxyOn) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                )
+
+                                if (isProxyOn) {
+                                    OutlinedTextField(
+                                        value = server,
+                                        onValueChange = { server = it },
+                                        label = { Text("Proxy Server / IP", color = Color(0xFF38BDF8)) },
+                                        placeholder = { Text("e.g. 192.168.1.1", color = Color.Gray) },
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFF38BDF8),
+                                            unfocusedBorderColor = Color(0xFF334155),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = port,
+                                        onValueChange = { port = it },
+                                        label = { Text("Proxy Port", color = Color(0xFF38BDF8)) },
+                                        placeholder = { Text("e.g. 8080", color = Color.Gray) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFF38BDF8),
+                                            unfocusedBorderColor = Color(0xFF334155),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = username,
+                                        onValueChange = { username = it },
+                                        label = { Text("Username (Optional)", color = Color(0xFF38BDF8)) },
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFF38BDF8),
+                                            unfocusedBorderColor = Color(0xFF334155),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = password,
+                                        onValueChange = { password = it },
+                                        label = { Text("Password (Optional)", color = Color(0xFF38BDF8)) },
+                                        singleLine = true,
+                                        visualTransformation = PasswordVisualTransformation(),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFF38BDF8),
+                                            unfocusedBorderColor = Color(0xFF334155),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        // --- USER AGENT SETTINGS SECTION ---
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Smartphone, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                                        Text("User-Agent System", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    }
+                                    Switch(
+                                        checked = isCustomUaOn,
+                                        onCheckedChange = { isCustomUaOn = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF10B981),
+                                            uncheckedThumbColor = Color.Gray,
+                                            uncheckedTrackColor = Color(0xFF334155)
+                                        )
+                                    )
+                                }
+                                Text(
+                                    text = if (isCustomUaOn) "Custom User-Agent ON (Uses saved User-Agent)" else "Custom User-Agent OFF (Uses phone original User-Agent)",
+                                    fontSize = 11.sp,
+                                    color = if (isCustomUaOn) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                )
+
+                                if (isCustomUaOn) {
+                                    OutlinedTextField(
+                                        value = customUa,
+                                        onValueChange = { customUa = it },
+                                        label = { Text("Custom User-Agent", color = Color(0xFF38BDF8)) },
+                                        placeholder = { Text("Mozilla/5.0 (Linux; Android...)", color = Color.Gray) },
+                                        minLines = 2,
+                                        maxLines = 4,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFF38BDF8),
+                                            unfocusedBorderColor = Color(0xFF334155),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+                    ) {
+                        Text("Cancel", color = Color.LightGray)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = { onSave(server, port, username, password, isProxyOn, isCustomUaOn, customUa) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    ) {
+                        Text("SAVE SETTINGS", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable

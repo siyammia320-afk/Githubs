@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
@@ -148,7 +149,23 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             .setOngoing(true)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
+                )
+            }
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private fun setupBubbleView() {
@@ -273,11 +290,10 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             if (dialogView == null) {
                 setupDialogView()
             }
-            if (dialogView?.parent == null) {
+            if (dialogView != null && dialogView?.parent == null) {
                 windowManager.addView(dialogView, dialogParams)
-            } else {
-                dialogView?.visibility = View.VISIBLE
             }
+            dialogView?.visibility = View.VISIBLE
             bubbleView?.visibility = View.GONE
             isDialogShowing = true
         } catch (e: Exception) {
@@ -290,17 +306,14 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
     }
 
     private fun closeDialogOverlay() {
-        if (!isDialogShowing) return
         try {
             if (dialogView != null && dialogView?.parent != null) {
                 windowManager.removeView(dialogView)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            dialogView?.visibility = View.GONE
             bubbleView?.visibility = View.VISIBLE
             isDialogShowing = false
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
