@@ -606,9 +606,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun appendRecordToCsv(uid: String, password: String, cookies: String) {
-        val cleanUid = uid.trim()
-        val cleanCookies = cookies.replace("\r", "").replace("\n", "").trim()
-        val cleanPassword = password.trim()
+        val cleanUid = uid.trim().replace("\t", "").replace("\"", "")
+        val cleanCookies = cookies
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("\t", " ") // replace tabs with space
+            .replace("\"", "")  // remove double quotes to prevent breaking columns
+            .trim()
+        val cleanPassword = password.trim().replace("\t", "").replace("\"", "")
 
         if (cleanUid.isEmpty()) return
 
@@ -626,11 +631,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveSheetRecord() {
         val state = _uiState.value
-        val uid = state.sheetUidInput.trim()
+        val uid = state.sheetUidInput.trim().replace("\t", "").replace("\"", "")
         val rawCookies = state.sheetCookiesInput.trim()
-        // Clean up newlines or excessive spaces inside cookies while preserving semicolon separation
-        val cookies = rawCookies.replace("\r", "").replace("\n", "").trim()
-        val password = prefsRepository.sheetPassword.ifBlank { "Pass123456" }
+        val cookies = rawCookies
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("\t", " ") // replace tabs with space
+            .replace("\"", "")  // remove double quotes to prevent breaking columns
+            .trim()
+        val password = prefsRepository.sheetPassword.ifBlank { "Pass123456" }.trim().replace("\t", "").replace("\"", "")
 
         if (uid.isEmpty()) {
             _uiState.value = state.copy(errorMessage = "Please enter UID!")

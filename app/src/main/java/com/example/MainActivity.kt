@@ -989,7 +989,6 @@ fun CreateAccountTabContent(
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
                         .testTag("phone_input")
                 )
 
@@ -1028,7 +1027,6 @@ fun CreateAccountTabContent(
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
                         .testTag("password_input")
                 )
 
@@ -2244,11 +2242,24 @@ fun SheetTabContent(
                             try {
                                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
                                     data = Uri.parse("package:${context.packageName}")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                                context.startActivity(intent)
+                                try {
+                                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e2: Exception) {
+                                    try {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
@@ -2289,8 +2300,7 @@ fun SheetTabContent(
                     ),
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp),
+                        .weight(1f),
                     singleLine = true
                 )
 
@@ -2330,8 +2340,7 @@ fun SheetTabContent(
                     ),
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(42.dp),
+                        .fillMaxWidth(),
                     singleLine = true
                 )
 
@@ -2349,8 +2358,7 @@ fun SheetTabContent(
                     ),
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
+                        .fillMaxWidth(),
                     maxLines = 2
                 )
 
