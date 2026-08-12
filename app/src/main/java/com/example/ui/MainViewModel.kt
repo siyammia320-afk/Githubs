@@ -569,7 +569,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveSheetRecord() {
         val state = _uiState.value
         val uid = state.sheetUidInput.trim()
-        val cookies = state.sheetCookiesInput.trim()
+        val rawCookies = state.sheetCookiesInput.trim()
+        // Clean up newlines or excessive spaces inside cookies while preserving semicolon separation
+        val cookies = rawCookies.replace("\r", "").replace("\n", "").trim()
         val password = prefsRepository.sheetPassword.ifBlank { "Pass123456" }
 
         if (uid.isEmpty()) {
@@ -579,7 +581,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         try {
             val file = getAccountFbFile()
-            val recordLine = if (cookies.isNotEmpty()) "$uid $password $cookies" else "$uid $password"
+            // Column A = UID, Column B = Password, Column C = Cookies (Separated by Tab \t)
+            val recordLine = if (cookies.isNotEmpty()) "$uid\t$password\t$cookies" else "$uid\t$password\t"
             file.appendText("$recordLine\n")
 
             val updatedRecords = readSheetRecordsFromCsv()
