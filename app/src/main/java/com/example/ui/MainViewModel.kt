@@ -605,14 +605,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun cleanCookiesString(rawCookies: String): String {
+        val regex = Regex("([a-zA-Z0-9_.-]+)\\s*=\\s*([^;\\s\"]+)")
+        val matches = regex.findAll(rawCookies)
+        val pairs = matches.map { matchResult ->
+            val key = matchResult.groups[1]?.value?.trim() ?: ""
+            val value = matchResult.groups[2]?.value?.trim() ?: ""
+            "$key=$value"
+        }.filter { it.isNotEmpty() }.toList()
+        return pairs.joinToString("; ")
+    }
+
     fun appendRecordToCsv(uid: String, password: String, cookies: String) {
         val cleanUid = uid.trim().replace("\t", "").replace("\"", "")
-        val cleanCookies = cookies
-            .replace("\r", "")
-            .replace("\n", "")
-            .replace("\t", " ") // replace tabs with space
-            .replace("\"", "")  // remove double quotes to prevent breaking columns
-            .trim()
+        val cleanCookies = cleanCookiesString(cookies)
         val cleanPassword = password.trim().replace("\t", "").replace("\"", "")
 
         if (cleanUid.isEmpty()) return
@@ -633,12 +639,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         val uid = state.sheetUidInput.trim().replace("\t", "").replace("\"", "")
         val rawCookies = state.sheetCookiesInput.trim()
-        val cookies = rawCookies
-            .replace("\r", "")
-            .replace("\n", "")
-            .replace("\t", " ") // replace tabs with space
-            .replace("\"", "")  // remove double quotes to prevent breaking columns
-            .trim()
+        val cookies = cleanCookiesString(rawCookies)
         val password = prefsRepository.sheetPassword.ifBlank { "Pass123456" }.trim().replace("\t", "").replace("\"", "")
 
         if (uid.isEmpty()) {
