@@ -48,4 +48,8 @@ class PreferencesRepository(context: Context) {
     var activeNumbersJson: String
         get() = prefs.getString("active_numbers_json", "") ?: ""
         set(value) = prefs.edit().putString("active_numbers_json", value).apply()
+
+    var sheetPassword: String
+        get() = prefs.getString("sheet_password", "") ?: ""
+        set(value) = prefs.edit().putString("sheet_password", value).apply()
 }

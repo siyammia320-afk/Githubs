@@ -72,7 +72,11 @@ data class AccountCreatorUiState(
     val isCustomUserAgentEnabled: Boolean = false,
     val customUserAgent: String = "",
     val proxyStatus: String = "DISCONNECTED",
-    val showProxyDialog: Boolean = false
+    val showProxyDialog: Boolean = false,
+    val sheetPasswordInput: String = "",
+    val sheetUidInput: String = "",
+    val sheetCookiesInput: String = "",
+    val sheetSavedRecords: List<String> = emptyList()
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -106,6 +110,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val customUa = prefsRepository.customUserAgent
 
         val savedActiveNumbers = loadActiveNumbersFromPrefs()
+        val sheetPass = prefsRepository.sheetPassword
+        val sheetRecords = readSheetRecordsFromCsv()
 
         _uiState.value = _uiState.value.copy(
             passwordInput = savedPassword,
@@ -122,7 +128,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isProxyEnabled = isProxyOn,
             isCustomUserAgentEnabled = isCustomUaOn,
             customUserAgent = customUa,
-            activeNumbers = savedActiveNumbers
+            activeNumbers = savedActiveNumbers,
+            sheetPasswordInput = sheetPass,
+            sheetSavedRecords = sheetRecords
         )
 
         // Start periodic app status check (every 30 seconds)
@@ -512,6 +520,94 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissMessage() {
         _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
+    }
+
+    // SHEET TAB LOGIC
+    fun onSheetPasswordChanged(pass: String) {
+        _uiState.value = _uiState.value.copy(sheetPasswordInput = pass)
+    }
+
+    fun saveSheetPassword(pass: String) {
+        val trimmed = pass.trim()
+        prefsRepository.sheetPassword = trimmed
+        _uiState.value = _uiState.value.copy(
+            sheetPasswordInput = trimmed,
+            successMessage = "Sheet password saved successfully!"
+        )
+    }
+
+    fun onSheetUidChanged(uid: String) {
+        _uiState.value = _uiState.value.copy(sheetUidInput = uid)
+    }
+
+    fun onSheetCookiesChanged(cookies: String) {
+        _uiState.value = _uiState.value.copy(sheetCookiesInput = cookies)
+    }
+
+    private fun getAccountFbFile(): java.io.File {
+        val context = getApplication<Application>()
+        val dir = java.io.File(context.getExternalFilesDir(null), "ACCOUNT FB")
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return java.io.File(dir, "account.csv")
+    }
+
+    private fun readSheetRecordsFromCsv(): List<String> {
+        return try {
+            val file = getAccountFbFile()
+            if (file.exists()) {
+                file.readLines().filter { it.isNotBlank() }
+            } else {
+                emptyList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveSheetRecord() {
+        val state = _uiState.value
+        val uid = state.sheetUidInput.trim()
+        val cookies = state.sheetCookiesInput.trim()
+        val password = prefsRepository.sheetPassword.ifBlank { "Pass123456" }
+
+        if (uid.isEmpty()) {
+            _uiState.value = state.copy(errorMessage = "Please enter UID!")
+            return
+        }
+
+        try {
+            val file = getAccountFbFile()
+            val recordLine = if (cookies.isNotEmpty()) "$uid $password $cookies" else "$uid $password"
+            file.appendText("$recordLine\n")
+
+            val updatedRecords = readSheetRecordsFromCsv()
+
+            _uiState.value = _uiState.value.copy(
+                sheetUidInput = "",
+                sheetCookiesInput = "",
+                sheetSavedRecords = updatedRecords,
+                successMessage = "Record saved to ACCOUNT FB/account.csv!"
+            )
+        } catch (e: Exception) {
+            _uiState.value = state.copy(errorMessage = "Error saving to file: ${e.message}")
+        }
+    }
+
+    fun clearSheetFile() {
+        try {
+            val file = getAccountFbFile()
+            if (file.exists()) {
+                file.writeText("")
+            }
+            _uiState.value = _uiState.value.copy(
+                sheetSavedRecords = emptyList(),
+                successMessage = "account.csv cleared!"
+            )
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Failed to clear file: ${e.message}")
+        }
     }
 }
 

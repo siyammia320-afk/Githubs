@@ -119,7 +119,7 @@ import com.example.ui.VoltxActiveNumber
 import com.example.ui.theme.FBTheme
 
 fun getCountryFlagForRange(rangeCode: String): String {
-    val clean = rangeCode.replace(Regex("[^0-9]"), "")
+    val clean = rangeCode.filter { it.isDigit() }
     return when {
         clean.startsWith("880") -> "🇧🇩"
         clean.startsWith("1") -> "🇺🇸"
@@ -314,15 +314,15 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
-            snackbarHostState.showSnackbar(error)
+        uiState.errorMessage?.let {
+            kotlinx.coroutines.delay(1500)
             viewModel.dismissMessage()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let { success ->
-            snackbarHostState.showSnackbar(success)
+        uiState.successMessage?.let {
+            kotlinx.coroutines.delay(1500)
             viewModel.dismissMessage()
         }
     }
@@ -358,6 +358,39 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                     .padding(innerPadding)
                     .background(Color(0xFF090D16))
             ) {
+                // Non-blocking compact message notification banner
+                if (uiState.errorMessage != null || uiState.successMessage != null) {
+                    val isErr = uiState.errorMessage != null
+                    val message = uiState.errorMessage ?: uiState.successMessage ?: ""
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(if (isErr) Color(0xFF991B1B) else Color(0xFF065F46))
+                            .clickable { viewModel.dismissMessage() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = message,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color(0xFF0F172A),
@@ -377,18 +410,18 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         text = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Smartphone,
                                     contentDescription = null,
                                     tint = if (selectedTabIndex == 0) Color(0xFF38BDF8) else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Text(
-                                    text = "GET NUMBER",
+                                    text = "NUMBER",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     color = if (selectedTabIndex == 0) Color.White else Color.Gray
                                 )
                             }
@@ -401,18 +434,18 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         text = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(
                                     Icons.Default.PersonAdd,
                                     contentDescription = null,
                                     tint = if (selectedTabIndex == 1) Color(0xFF38BDF8) else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Text(
                                     text = "Create",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     color = if (selectedTabIndex == 1) Color.White else Color.Gray
                                 )
                             }
@@ -421,22 +454,22 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                     Tab(
                         selected = selectedTabIndex == 2,
                         onClick = { selectedTabIndex = 2 },
-                        modifier = Modifier.testTag("tab_inbox"),
+                        modifier = Modifier.testTag("tab_sheet"),
                         text = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.Email,
+                                    Icons.Default.ContentCopy,
                                     contentDescription = null,
-                                    tint = if (selectedTabIndex == 2) Color(0xFF38BDF8) else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
+                                    tint = if (selectedTabIndex == 2) Color(0xFF10B981) else Color.Gray,
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Text(
-                                    text = "Inbox (${uiState.activeNumbers.size})",
+                                    text = "SHEET",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     color = if (selectedTabIndex == 2) Color.White else Color.Gray
                                 )
                             }
@@ -445,23 +478,47 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                     Tab(
                         selected = selectedTabIndex == 3,
                         onClick = { selectedTabIndex = 3 },
+                        modifier = Modifier.testTag("tab_inbox"),
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 3) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "Inbox (${uiState.activeNumbers.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = if (selectedTabIndex == 3) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 4,
+                        onClick = { selectedTabIndex = 4 },
                         modifier = Modifier.testTag("tab_history"),
                         text = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(
                                     Icons.Default.History,
                                     contentDescription = null,
-                                    tint = if (selectedTabIndex == 3) Color(0xFF38BDF8) else Color.Gray,
-                                    modifier = Modifier.size(16.dp)
+                                    tint = if (selectedTabIndex == 4) Color(0xFF38BDF8) else Color.Gray,
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Text(
                                     text = "Saved (${accountsHistory.size})",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = if (selectedTabIndex == 3) Color.White else Color.Gray
+                                    fontSize = 10.sp,
+                                    color = if (selectedTabIndex == 4) Color.White else Color.Gray
                                 )
                             }
                         }
@@ -490,7 +547,17 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         onGoToGetNumber = { selectedTabIndex = 0 },
                         onOpenProxySettings = viewModel::openProxyDialog
                     )
-                    2 -> InboxTabContent(
+                    2 -> SheetTabContent(
+                        uiState = uiState,
+                        onPasswordChange = viewModel::onSheetPasswordChanged,
+                        onSavePassword = viewModel::saveSheetPassword,
+                        onUidChange = viewModel::onSheetUidChanged,
+                        onCookiesChange = viewModel::onSheetCookiesChanged,
+                        onSaveRecord = viewModel::saveSheetRecord,
+                        onClearFile = viewModel::clearSheetFile,
+                        onCopyAllCsv = { txt -> viewModel.copyToClipboard(context, txt, "CSV CONTENT") }
+                    )
+                    3 -> InboxTabContent(
                         activeNumbers = uiState.activeNumbers,
                         onCopyOtp = { otp -> viewModel.copyToClipboard(context, otp, "OTP CODE") },
                         onCopyPhone = { phone -> viewModel.copyToClipboard(context, phone, "PHONE NUMBER") },
@@ -498,7 +565,7 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         onClearInbox = viewModel::clearInbox,
                         onReloadInbox = viewModel::manualRefreshOtps
                     )
-                    3 -> AccountHistoryTabContent(
+                    4 -> AccountHistoryTabContent(
                         accounts = accountsHistory,
                         onClearAll = viewModel::clearAllAccounts,
                         onDeleteOne = viewModel::deleteAccount,
@@ -625,10 +692,8 @@ fun GetNumberTabContent(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -695,7 +760,7 @@ fun GetNumberTabContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             uiState.facebookRanges.forEach { rangeCode ->
-                                val flag = getCountryFlagForRange(rangeCode)
+                                val flag = remember(rangeCode) { getCountryFlagForRange(rangeCode) }
                                 val isSelected = uiState.selectedRangeCode == rangeCode
 
                                 Button(
@@ -704,18 +769,14 @@ fun GetNumberTabContent(
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B)
                                     ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isSelected) Color(0xFF38BDF8) else Color(0xFF334155)
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text(text = flag, fontSize = 16.sp)
+                                        Text(text = flag, fontSize = 15.sp)
                                         Text(
                                             text = rangeCode,
                                             fontSize = 13.sp,
@@ -735,14 +796,8 @@ fun GetNumberTabContent(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        1.dp,
-                        if (uiState.phoneInput.isNotEmpty()) Color(0xFF10B981) else Color(0xFF1E293B),
-                        RoundedCornerShape(14.dp)
-                    )
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -771,7 +826,7 @@ fun GetNumberTabContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color(0xFF1E293B))
                             .padding(14.dp)
                     ) {
@@ -865,10 +920,8 @@ fun CreateAccountTabContent(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
@@ -926,10 +979,8 @@ fun CreateAccountTabContent(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -967,7 +1018,7 @@ fun CreateAccountTabContent(
                                 disabledLeadingIconColor = Color(0xFF38BDF8),
                                 disabledPlaceholderColor = Color(0xFF64748B)
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("phone_input")
@@ -1020,7 +1071,7 @@ fun CreateAccountTabContent(
                             disabledBorderColor = Color(0xFF1E293B),
                             disabledTextColor = Color.Gray
                         ),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("password_input")
@@ -1034,7 +1085,7 @@ fun CreateAccountTabContent(
                             containerColor = Color(0xFF0284C7),
                             disabledContainerColor = Color(0xFF1E293B)
                         ),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -1071,10 +1122,8 @@ fun CreateAccountTabContent(
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF022C22)),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, Color(0xFF059669), RoundedCornerShape(14.dp))
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -1672,6 +1721,7 @@ fun CountryDropdownSelector(
     onCountrySelected: (Country) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val countries = remember { Country.values() }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -1686,10 +1736,9 @@ fun CountryDropdownSelector(
                 colors = CardDefaults.cardColors(
                     containerColor = if (enabled) Color(0xFF1E293B) else Color(0xFF0F172A)
                 ),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
                     .clickable(enabled = enabled) { expanded = !expanded }
             ) {
                 Row(
@@ -1722,11 +1771,9 @@ fun CountryDropdownSelector(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .background(Color(0xFF0F172A))
-                    .border(1.dp, Color(0xFF334155), RoundedCornerShape(8.dp))
+                modifier = Modifier.background(Color(0xFF0F172A))
             ) {
-                Country.values().forEach { country ->
+                countries.forEach { country ->
                     DropdownMenuItem(
                         text = {
                             Row(
@@ -2198,6 +2245,257 @@ fun FloatingWidgetControlCard() {
                         ) {
                             Icon(Icons.Default.Stop, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Text("STOP FLOATING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SheetTabContent(
+    uiState: com.example.ui.AccountCreatorUiState,
+    onPasswordChange: (String) -> Unit,
+    onSavePassword: (String) -> Unit,
+    onUidChange: (String) -> Unit,
+    onCookiesChange: (String) -> Unit,
+    onSaveRecord: () -> Unit,
+    onClearFile: () -> Unit,
+    onCopyAllCsv: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "1. PASSWORD SETTINGS",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = uiState.sheetPasswordInput,
+                        onValueChange = onPasswordChange,
+                        placeholder = { Text("Enter Default Password (e.g. arafat@ @##)", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFF1E293B),
+                            unfocusedContainerColor = Color(0xFF1E293B),
+                            focusedBorderColor = Color(0xFF38BDF8),
+                            unfocusedBorderColor = Color(0xFF334155),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Button(
+                        onClick = { onSavePassword(uiState.sheetPasswordInput) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                    ) {
+                        Text("SAVE / CHANGE PASSWORD", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "2. UID AND COOKIES",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Text("UID", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
+                    OutlinedTextField(
+                        value = uiState.sheetUidInput,
+                        onValueChange = onUidChange,
+                        placeholder = { Text("Enter UID (e.g. 61593284095277)", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFF1E293B),
+                            unfocusedContainerColor = Color(0xFF1E293B),
+                            focusedBorderColor = Color(0xFF10B981),
+                            unfocusedBorderColor = Color(0xFF334155),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Text("COOKIES", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
+                    OutlinedTextField(
+                        value = uiState.sheetCookiesInput,
+                        onValueChange = onCookiesChange,
+                        placeholder = { Text("Enter COOKIES (e.g. datr=...; sb=...; c_user=...)", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFF1E293B),
+                            unfocusedContainerColor = Color(0xFF1E293B),
+                            focusedBorderColor = Color(0xFF7C3AED),
+                            unfocusedBorderColor = Color(0xFF334155),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4
+                    )
+
+                    Button(
+                        onClick = onSaveRecord,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("save_to_sheet_button")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                            Text("SAVE TO SHEET (account.csv)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "📁 ACCOUNT FB / account.csv",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Total Lines: ${uiState.sheetSavedRecords.size}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF38BDF8)
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (uiState.sheetSavedRecords.isNotEmpty()) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val fullTxt = uiState.sheetSavedRecords.joinToString("\n")
+                                        onCopyAllCsv(fullTxt)
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text("COPY ALL", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                                }
+
+                                OutlinedButton(
+                                    onClick = onClearFile,
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text("CLEAR", fontSize = 10.sp, color = Color(0xFFEF4444))
+                                }
+                            }
+                        }
+                    }
+
+                    if (uiState.sheetSavedRecords.isEmpty()) {
+                        Text(
+                            text = "No saved records in account.csv yet. Fill UID & Cookies above and tap SAVE!",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            uiState.sheetSavedRecords.takeLast(10).reversed().forEach { record ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFF1E293B))
+                                        .padding(10.dp)
+                                ) {
+                                    Text(
+                                        text = record,
+                                        fontSize = 11.sp,
+                                        color = Color.White,
+                                        fontFamily = FontFamily.Monospace,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
                         }
                     }
                 }
