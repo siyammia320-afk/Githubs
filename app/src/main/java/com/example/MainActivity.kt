@@ -354,7 +354,9 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                 Button(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/INCOME_FREE_BD"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/INCOME_FREE_BD")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
                             context.startActivity(intent)
                         } catch (_: Exception) { }
                         viewModel.dismissTelegramDialog()
