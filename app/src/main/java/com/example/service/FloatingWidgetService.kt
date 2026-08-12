@@ -67,7 +67,12 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
 
     private lateinit var windowManager: WindowManager
     private var bubbleView: ComposeView? = null
+    private var dialogView: ComposeView? = null
+
     private lateinit var bubbleParams: WindowManager.LayoutParams
+    private lateinit var dialogParams: WindowManager.LayoutParams
+
+    private var isDialogShowing = false
 
     companion object {
         private val _isRunning = MutableStateFlow(false)
@@ -106,6 +111,7 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         setupBubbleView()
+        setupDialogView()
     }
 
     private fun startForegroundNotification() {
@@ -206,7 +212,7 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                     val diffY = abs(event.rawY - initialTouchY)
                     val duration = System.currentTimeMillis() - touchDownTime
                     if (diffX < 35 && diffY < 35 && duration < 600) {
-                        openAppFromBubble()
+                        openDialogOverlay()
                     }
                     true
                 }
@@ -221,12 +227,73 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         }
     }
 
-    private fun openAppFromBubble() {
-        try {
-            val intent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+    private fun setupDialogView() {
+        val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val displayMetrics = resources.displayMetrics
+        val width = (displayMetrics.widthPixels * 0.96).toInt()
+        val height = (displayMetrics.heightPixels * 0.90).toInt()
+
+        dialogParams = WindowManager.LayoutParams(
+            width,
+            height,
+            layoutType,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.CENTER
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        }
+
+        dialogView = ComposeView(this).apply {
+            setViewTreeLifecycleOwner(this@FloatingWidgetService)
+            setViewTreeViewModelStoreOwner(this@FloatingWidgetService)
+            setViewTreeSavedStateRegistryOwner(this@FloatingWidgetService)
+
+            setContent {
+                com.example.ui.theme.FBTheme {
+                    FloatingDialogOverlayContent(
+                        onCloseClick = { closeDialogOverlay() },
+                        onStopServiceClick = {
+                            stopSelf()
+                        }
+                    )
+                }
             }
-            startActivity(intent)
+        }
+    }
+
+    private fun openDialogOverlay() {
+        if (isDialogShowing) return
+        try {
+            if (dialogView == null) {
+                setupDialogView()
+            }
+            if (dialogView?.parent == null) {
+                windowManager.addView(dialogView, dialogParams)
+            } else {
+                dialogView?.visibility = View.VISIBLE
+            }
+            bubbleView?.visibility = View.GONE
+            isDialogShowing = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun closeDialogOverlay() {
+        if (!isDialogShowing) return
+        try {
+            dialogView?.visibility = View.GONE
+            bubbleView?.visibility = View.VISIBLE
+            isDialogShowing = false
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -237,6 +304,9 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
         try {
             if (bubbleView != null && bubbleView?.parent != null) {
                 windowManager.removeView(bubbleView)
+            }
+            if (dialogView != null && dialogView?.parent != null) {
+                windowManager.removeView(dialogView)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -368,7 +438,7 @@ fun FloatingDialogOverlayContent(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                MainAppScreen()
+                com.example.FullFeatureAppContent()
             }
         }
     }

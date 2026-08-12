@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
+fun MainAppScreen() {
     var showSplashScreen by rememberSaveable { mutableStateOf(true) }
 
     if (showSplashScreen) {
@@ -165,6 +165,68 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
         return
     }
 
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF0F172A),
+                    titleContentColor = Color.White
+                ),
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E3A8A)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = "Shield",
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "ARAFAT FB CREATOR",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "ONLINE • FLOATING CONTROLLER",
+                                fontSize = 10.sp,
+                                color = Color(0xFF10B981),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFF090D16))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            FloatingWidgetControlCard()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accountsHistory by viewModel.accountHistory.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -324,72 +386,25 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0F172A),
-                    titleContentColor = Color.White
-                ),
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF1E3A8A)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = "Shield",
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "FB Account Creator Pro",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "ONLINE • AUTO OTP 3s",
-                                fontSize = 10.sp,
-                                color = Color(0xFF10B981),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = viewModel::openProxyDialog,
-                        modifier = Modifier.testTag("settings_proxy_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Proxy Settings",
-                            tint = Color(0xFF38BDF8)
-                        )
-                    }
-
-                    val activity = context as? android.app.Activity
-                    IconButton(
-                        onClick = {
-                            activity?.moveTaskToBack(true)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Minimize to Floating Widget",
-                            tint = Color(0xFFF43F5E)
-                        )
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF0F172A))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = viewModel::openProxyDialog,
+                    modifier = Modifier.testTag("settings_proxy_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Proxy Settings",
+                        tint = Color(0xFF38BDF8)
+                    )
                 }
-            )
+            }
         }
     ) { innerPadding ->
         Column(
@@ -398,8 +413,6 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                 .padding(innerPadding)
                 .background(Color(0xFF090D16))
         ) {
-            FloatingWidgetControlCard()
-
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = Color(0xFF0F172A),
