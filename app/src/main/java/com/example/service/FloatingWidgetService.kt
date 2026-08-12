@@ -20,6 +20,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,21 +39,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
-import androidx.lifecycle.HasDefaultViewModelProviderFactory
-import androidx.lifecycle.ViewModelProvider
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.MainActivity
-import com.example.MainAppScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
@@ -239,17 +239,12 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        val displayMetrics = resources.displayMetrics
-        val width = (displayMetrics.widthPixels * 0.96).toInt()
-        val height = (displayMetrics.heightPixels * 0.90).toInt()
-
         dialogParams = WindowManager.LayoutParams(
-            width,
-            height,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
@@ -265,9 +260,7 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
                 com.example.ui.theme.FBTheme {
                     FloatingDialogOverlayContent(
                         onCloseClick = { closeDialogOverlay() },
-                        onStopServiceClick = {
-                            stopSelf()
-                        }
+                        onStopServiceClick = { stopSelf() }
                     )
                 }
             }
@@ -289,32 +282,48 @@ class FloatingWidgetService : Service(), LifecycleOwner, ViewModelStoreOwner, Sa
             isDialogShowing = true
         } catch (e: Exception) {
             e.printStackTrace()
+            try {
+                bubbleView?.visibility = View.VISIBLE
+            } catch (_: Exception) {}
+            isDialogShowing = false
         }
     }
 
     private fun closeDialogOverlay() {
         if (!isDialogShowing) return
         try {
+            if (dialogView != null && dialogView?.parent != null) {
+                windowManager.removeView(dialogView)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
             dialogView?.visibility = View.GONE
             bubbleView?.visibility = View.VISIBLE
             isDialogShowing = false
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
     override fun onDestroy() {
         _isRunning.value = false
+        isDialogShowing = false
         try {
             if (bubbleView != null && bubbleView?.parent != null) {
                 windowManager.removeView(bubbleView)
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
             if (dialogView != null && dialogView?.parent != null) {
                 windowManager.removeView(dialogView)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        bubbleView = null
+        dialogView = null
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
@@ -360,90 +369,108 @@ fun FloatingDialogOverlayContent(
     onCloseClick: () -> Unit,
     onStopServiceClick: () -> Unit
 ) {
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(20.dp))
-            .border(1.5.dp, Color(0xFF0284C7), RoundedCornerShape(20.dp)),
-        color = Color(0xFF0F172A)
+            .background(Color.Black.copy(alpha = 0.55f))
+            .clickable(
+                onClick = onCloseClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Header Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF1E293B))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.90f)
+                .clickable(
+                    onClick = { /* consume clicks inside overlay dialog card */ },
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                )
+                .clip(RoundedCornerShape(20.dp))
+                .border(1.5.dp, Color(0xFF0284C7), RoundedCornerShape(20.dp)),
+            color = Color(0xFF0F172A)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header Bar
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E293B))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0284C7)),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("FB", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0284C7)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("FB", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
 
-                    Text(
-                        text = "ARAFAT FB CREATOR",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // STOP SERVICE button inside dialog header
-                    IconButton(
-                        onClick = onStopServiceClick,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF7F1D1D))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Stop,
-                            contentDescription = "Stop Service",
-                            tint = Color(0xFFFCA5A5),
-                            modifier = Modifier.size(18.dp)
+                        Text(
+                            text = "ARAFAT FB CREATOR",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
 
-                    // CLOSE (X) button inside dialog header
-                    IconButton(
-                        onClick = onCloseClick,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF334155))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close Dialog",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        // STOP SERVICE button inside dialog header
+                        IconButton(
+                            onClick = onStopServiceClick,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF7F1D1D))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Stop,
+                                contentDescription = "Stop Service",
+                                tint = Color(0xFFFCA5A5),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // CLOSE (X) button inside dialog header
+                        IconButton(
+                            onClick = onCloseClick,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF334155))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close Dialog",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
-            }
 
-            // Body Content (Full App)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                com.example.FullFeatureAppContent()
+                // Body Content (Full App)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    com.example.FullFeatureAppContent()
+                }
             }
         }
     }
