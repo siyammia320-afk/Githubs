@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -372,6 +373,19 @@ fun MainAppScreen(viewModel: MainViewModel = viewModel()) {
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Proxy Settings",
                             tint = Color(0xFF38BDF8)
+                        )
+                    }
+
+                    val activity = context as? android.app.Activity
+                    IconButton(
+                        onClick = {
+                            activity?.moveTaskToBack(true)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Minimize to Floating Widget",
+                            tint = Color(0xFFF43F5E)
                         )
                     }
                 }
