@@ -459,6 +459,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val newId = accountDao.insertAccount(entity)
                     val savedEntity = entity.copy(id = newId)
 
+                    // Auto-save created account to account.csv file in /sdcard/ACCOUNT FB/
+                    appendRecordToCsv(result.uid, result.password, result.cookies)
+
                     // Update active number with UID
                     val updatedActives = _uiState.value.activeNumbers.map {
                         if (it.phone == phone) it.copy(accountUid = result.uid) else it
@@ -468,7 +471,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         isCreating = false,
                         lastCreatedAccount = savedEntity,
                         activeNumbers = updatedActives,
-                        successMessage = "Account Created! UID: ${result.uid}. Waiting for OTP..."
+                        successMessage = "Account Created! UID: ${result.uid}. Auto-saved to account.csv"
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -545,12 +548,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun getAccountFbFile(): java.io.File {
-        val context = getApplication<Application>()
-        val dir = java.io.File(context.getExternalFilesDir(null), "ACCOUNT FB")
-        if (!dir.exists()) {
-            dir.mkdirs()
+        // Try root external storage directory first: /storage/emulated/0/ACCOUNT FB
+        val rootDir = java.io.File(android.os.Environment.getExternalStorageDirectory(), "ACCOUNT FB")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (android.os.Environment.isExternalStorageManager()) {
+                try {
+                    if (!rootDir.exists()) {
+                        rootDir.mkdirs()
+                    }
+                    return java.io.File(rootDir, "account.csv")
+                } catch (_: Exception) {}
+            }
+        } else {
+            // Android 10 or below, can write to root directory with WRITE_EXTERNAL_STORAGE permission
+            try {
+                if (!rootDir.exists()) {
+                    rootDir.mkdirs()
+                }
+                return java.io.File(rootDir, "account.csv")
+            } catch (_: Exception) {}
         }
-        return java.io.File(dir, "account.csv")
+
+        // Fallback 1: Public Download folder which is always accessible without permissions on Android 10+: /storage/emulated/0/Download/ACCOUNT FB
+        val downloadDir = java.io.File(
+            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+            "ACCOUNT FB"
+        )
+        try {
+            if (!downloadDir.exists()) {
+                downloadDir.mkdirs()
+            }
+            return java.io.File(downloadDir, "account.csv")
+        } catch (_: Exception) {}
+
+        // Fallback 2: Private app files directory
+        val context = getApplication<Application>()
+        val privateDir = java.io.File(context.getExternalFilesDir(null), "ACCOUNT FB")
+        try {
+            if (!privateDir.exists()) {
+                privateDir.mkdirs()
+            }
+        } catch (_: Exception) {}
+        return java.io.File(privateDir, "account.csv")
     }
 
     private fun readSheetRecordsFromCsv(): List<String> {
@@ -564,6 +603,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    fun appendRecordToCsv(uid: String, password: String, cookies: String) {
+        val cleanUid = uid.trim()
+        val cleanCookies = cookies.replace("\r", "").replace("\n", "").trim()
+        val cleanPassword = password.trim()
+
+        if (cleanUid.isEmpty()) return
+
+        try {
+            val file = getAccountFbFile()
+            val recordLine = if (cleanCookies.isNotEmpty()) "$cleanUid\t$cleanPassword\t$cleanCookies" else "$cleanUid\t$cleanPassword\t"
+            file.appendText("$recordLine\n")
+            
+            // Reload records for Sheet tab UI
+            _uiState.value = _uiState.value.copy(
+                sheetSavedRecords = readSheetRecordsFromCsv()
+            )
+        } catch (_: Exception) {}
     }
 
     fun saveSheetRecord() {
@@ -591,7 +649,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 sheetUidInput = "",
                 sheetCookiesInput = "",
                 sheetSavedRecords = updatedRecords,
-                successMessage = "Record saved to ACCOUNT FB/account.csv!"
+                successMessage = "Saved successfully!\nLocation: ${file.absolutePath}"
             )
         } catch (e: Exception) {
             _uiState.value = state.copy(errorMessage = "Error saving to file: ${e.message}")
@@ -606,7 +664,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             _uiState.value = _uiState.value.copy(
                 sheetSavedRecords = emptyList(),
-                successMessage = "account.csv cleared!"
+                successMessage = "Cleared file at:\n${file.absolutePath}"
             )
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(errorMessage = "Failed to clear file: ${e.message}")

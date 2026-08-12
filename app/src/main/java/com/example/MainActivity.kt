@@ -2175,12 +2175,93 @@ fun SheetTabContent(
     onClearFile: () -> Unit,
     onCopyAllCsv: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    var hasStoragePermission by remember {
+        mutableStateOf(
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                android.os.Environment.isExternalStorageManager()
+            } else {
+                true
+            }
+        )
+    }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasStoragePermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    android.os.Environment.isExternalStorageManager()
+                } else {
+                    true
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        if (!hasStoragePermission && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF221515)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Warning",
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ফাইল ম্যানেজার পারমিশন প্রয়োজন",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "অটো অ্যাকাউন্ট সেভ করার জন্য All Files Access পারমিশন দিন।",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            try {
+                                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                                context.startActivity(intent)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text("ALLOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+
         // Password Settings Bar
         Card(
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
@@ -2368,7 +2449,7 @@ fun SheetTabContent(
                                     .padding(6.dp)
                             ) {
                                 Text(
-                                    text = record,
+                                    text = record.replace("\t", "   |   "),
                                     fontSize = 10.sp,
                                     color = Color.White,
                                     fontFamily = FontFamily.Monospace,
