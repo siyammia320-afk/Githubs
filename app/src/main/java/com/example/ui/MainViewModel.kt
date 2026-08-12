@@ -540,11 +540,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onSheetUidChanged(uid: String) {
-        _uiState.value = _uiState.value.copy(sheetUidInput = uid)
+        val raw = uid.trim()
+        if (raw.contains("\t")) {
+            val parts = raw.split("\t").map { it.replace("\"", "").trim() }.filter { it.isNotEmpty() }
+            if (parts.isNotEmpty()) {
+                val extractedUid = parts[0]
+                val extractedPassword = if (parts.size > 1) parts[1] else ""
+                val extractedCookiesList = if (parts.size > 2) parts.subList(2, parts.size) else emptyList()
+                
+                val rawCookiesCombined = extractedCookiesList.joinToString("; ")
+                val cleanCookies = cleanCookiesString(rawCookiesCombined)
+                
+                _uiState.value = _uiState.value.copy(
+                    sheetUidInput = extractedUid,
+                    sheetCookiesInput = cleanCookies
+                )
+                if (extractedPassword.isNotEmpty()) {
+                    prefsRepository.sheetPassword = extractedPassword
+                    _uiState.value = _uiState.value.copy(
+                        sheetPasswordInput = extractedPassword
+                    )
+                }
+            }
+        } else {
+            _uiState.value = _uiState.value.copy(sheetUidInput = uid)
+        }
     }
 
     fun onSheetCookiesChanged(cookies: String) {
-        _uiState.value = _uiState.value.copy(sheetCookiesInput = cookies)
+        val raw = cookies.trim()
+        if (raw.contains("\t")) {
+            val parts = raw.split("\t").map { it.replace("\"", "").trim() }.filter { it.isNotEmpty() }
+            if (parts.isNotEmpty()) {
+                val extractedUid = parts[0]
+                val extractedPassword = if (parts.size > 1) parts[1] else ""
+                val extractedCookiesList = if (parts.size > 2) parts.subList(2, parts.size) else emptyList()
+                
+                val rawCookiesCombined = extractedCookiesList.joinToString("; ")
+                val cleanCookies = cleanCookiesString(rawCookiesCombined)
+                
+                _uiState.value = _uiState.value.copy(
+                    sheetUidInput = extractedUid,
+                    sheetCookiesInput = cleanCookies
+                )
+                if (extractedPassword.isNotEmpty()) {
+                    prefsRepository.sheetPassword = extractedPassword
+                    _uiState.value = _uiState.value.copy(
+                        sheetPasswordInput = extractedPassword
+                    )
+                }
+            }
+        } else {
+            _uiState.value = _uiState.value.copy(sheetCookiesInput = cookies)
+        }
     }
 
     private fun getAccountFbFile(): java.io.File {
@@ -606,14 +654,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun cleanCookiesString(rawCookies: String): String {
+        val cleanRaw = rawCookies
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("\t", " ") // replace tabs with space to prevent breaking columns
+            .replace("\"", "")  // remove double quotes
+            .trim()
+
+        if (!cleanRaw.contains("=")) {
+            return cleanRaw
+        }
+
         val regex = Regex("([a-zA-Z0-9_.-]+)\\s*=\\s*([^;\\s\"]+)")
-        val matches = regex.findAll(rawCookies)
+        val matches = regex.findAll(cleanRaw)
         val pairs = matches.map { matchResult ->
             val key = matchResult.groups[1]?.value?.trim() ?: ""
             val value = matchResult.groups[2]?.value?.trim() ?: ""
             "$key=$value"
         }.filter { it.isNotEmpty() }.toList()
-        return pairs.joinToString("; ")
+
+        return if (pairs.isEmpty()) cleanRaw else pairs.joinToString("; ")
     }
 
     fun appendRecordToCsv(uid: String, password: String, cookies: String) {
