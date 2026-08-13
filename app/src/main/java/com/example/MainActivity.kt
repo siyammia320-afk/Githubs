@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.ui.text.style.TextAlign
 import com.example.service.FloatingWidgetService
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
@@ -182,8 +183,8 @@ fun MainAppScreen(viewModel: com.example.ui.MainViewModel = androidx.lifecycle.v
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF1F5F9),
-                    titleContentColor = Color(0xFF0F172A)
+                    containerColor = Color(0xFF0F172A),
+                    titleContentColor = Color.White
                 ),
                 title = {
                     Row(
@@ -194,13 +195,13 @@ fun MainAppScreen(viewModel: com.example.ui.MainViewModel = androidx.lifecycle.v
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFDBEAFE)),
+                                .background(Color(0xFF1E293B)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = "Shield",
-                                tint = Color(0xFF1E40AF),
+                                tint = Color(0xFF38BDF8),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -209,12 +210,12 @@ fun MainAppScreen(viewModel: com.example.ui.MainViewModel = androidx.lifecycle.v
                                 text = "ARAFAT FB CREATOR",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A)
+                                color = Color.White
                             )
                             Text(
                                 text = "ONLINE • FLOATING CONTROLLER",
                                 fontSize = 10.sp,
-                                color = Color(0xFF059669),
+                                color = Color(0xFF34D399),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -236,9 +237,9 @@ fun MainAppScreen(viewModel: com.example.ui.MainViewModel = androidx.lifecycle.v
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color.White)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
+                .background(Color(0xFF020617))
+                .verticalScroll(rememberScrollState())
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             FloatingWidgetControlCard(viewModel = viewModel)
@@ -550,6 +551,7 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         onPasswordChange = viewModel::onPasswordChanged,
                         onCountrySelected = viewModel::onCountrySelected,
                         onCreateAccount = viewModel::createAccount,
+                        onFindAccount = viewModel::findAccount,
                         onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
                         onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
                         onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
@@ -923,6 +925,7 @@ fun CreateAccountTabContent(
     onPasswordChange: (String) -> Unit,
     onCountrySelected: (Country) -> Unit,
     onCreateAccount: () -> Unit,
+    onFindAccount: () -> Unit = {},
     onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
     onCopyCookies: (String) -> Unit,
@@ -1052,39 +1055,114 @@ fun CreateAccountTabContent(
                         .testTag("password_input")
                 )
 
-                // CREATE NOW Button
-                Button(
-                    onClick = onCreateAccount,
-                    enabled = !uiState.isCreating,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF334155),
-                        disabledContainerColor = Color(0xFF2D2D2D)
-                    ),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .testTag("create_now_button")
+                // Action Buttons Row (CREATE NOW & Find Account)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (uiState.isCreating) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text("CREATING...", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    // CREATE NOW Button
+                    Button(
+                        onClick = onCreateAccount,
+                        enabled = !uiState.isCreating && !uiState.isFindingAccount,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF334155),
+                            disabledContainerColor = Color(0xFF2D2D2D)
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .testTag("create_now_button")
+                    ) {
+                        if (uiState.isCreating) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text("CREATING...", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Text("CREATE NOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
-                    } else {
+                    }
+
+                    // Find Account Button
+                    Button(
+                        onClick = onFindAccount,
+                        enabled = !uiState.isCreating && !uiState.isFindingAccount,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0284C7),
+                            disabledContainerColor = Color(0xFF2D2D2D)
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .testTag("find_account_button")
+                    ) {
+                        if (uiState.isFindingAccount) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text("SEARCHING...", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Text("Find Account", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+
+                // Find Account Result Banner
+                uiState.findAccountResult?.let { result ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (result.contains("Yess")) Color(0xFF065F46) else Color(0xFF7F1D1D)
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Text("CREATE NOW", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                text = "Account Status:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = result,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -2580,8 +2658,8 @@ fun FloatingWidgetControlCard(viewModel: MainViewModel) {
                 )
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.heightIn(max = 120.dp).verticalScroll(rememberScrollState())
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     uiState.withdrawalsList.forEach { item ->
                         Row(

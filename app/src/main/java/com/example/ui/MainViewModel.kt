@@ -96,10 +96,15 @@ data class AccountCreatorUiState(
     val withdrawalsList: List<com.example.network.WalletService.Withdrawal> = emptyList(),
     val isWithdrawalLoading: Boolean = false,
     val withdrawalError: String? = null,
-    val withdrawalSuccess: String? = null
+    val withdrawalSuccess: String? = null,
+    val isFindingAccount: Boolean = false,
+    val findAccountResult: String? = null
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    private var lastFindAccountTimeMs: Long = 0L
+    private var lastLiveCheckTimeMs: Long = 0L
 
     private val accountDao: AccountDao = AppDatabase.getDatabase(application).accountDao()
     private val prefsRepository = PreferencesRepository(application)
@@ -192,7 +197,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (_uiState.value.isLoggedIn) {
                     refreshWalletData()
                 }
-                delay(30_000) // repeat every 30 seconds
+                delay(5_000) // check every 5 seconds for real-time app status & wallet updates
             }
         }
     }
@@ -561,6 +566,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun findAccount() {
+        val currentState = _uiState.value
+        val phone = currentState.phoneInput.trim()
+        if (phone.isEmpty()) {
+            _uiState.value = currentState.copy(errorMessage = "Please get or select a number first!")
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastFindAccountTimeMs
+        if (elapsed < 10000) {
+            val secondsLeft = ((10000 - elapsed) / 1000) + 1
+            _uiState.value = currentState.copy(
+                errorMessage = "১০ সেকেন্ডের আগে চেক করা যাবে না! অনুগ্রহ করে $secondsLeft সেকেন্ড পর আবার চেষ্টা করুন।"
+            )
+            return
+        }
+        lastFindAccountTimeMs = now
+
+        _uiState.value = currentState.copy(
+            isFindingAccount = true,
+            findAccountResult = null
+        )
+
+        viewModelScope.launch {
+            val exists = com.example.network.FbIdentifyService.checkAccountExists(phone)
+            val resultText = if (exists) "Yess ✅" else "No 🚫💥"
+            _uiState.value = _uiState.value.copy(
+                isFindingAccount = false,
+                findAccountResult = resultText
+            )
+        }
+    }
+
     fun clearAllAccounts() {
         viewModelScope.launch {
             accountDao.clearAllAccounts()
@@ -906,12 +945,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun checkLiveStatusForSavedAccounts() {
+        val accounts = accountHistory.value
+        if (accounts.isEmpty()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "কোনো সেভ একাউন্ট খুঁজে পাওয়া যায়নি!")
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastLiveCheckTimeMs
+        if (elapsed < 10000) {
+            val secondsLeft = ((10000 - elapsed) / 1000) + 1
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "১০ সেকেন্ডের আগে লাইভ চেক করা যাবে না! অনুগ্রহ করে $secondsLeft সেকেন্ড পর আবার চেষ্টা করুন।"
+            )
+            return
+        }
+        lastLiveCheckTimeMs = now
+
         viewModelScope.launch {
-            val accounts = accountHistory.value
-            if (accounts.isEmpty()) {
-                _uiState.value = _uiState.value.copy(errorMessage = "কোনো সেভ একাউন্ট খুঁজে পাওয়া যায়নি!")
-                return@launch
-            }
             _uiState.value = _uiState.value.copy(isCheckingLive = true)
             val uids = accounts.map { it.uid }
             val results = com.example.network.LiveCheckService.checkLiveUids(uids)
@@ -927,6 +978,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun checkLiveStatusForSingleAccount(uid: String) {
         if (uid.isBlank()) return
+
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastLiveCheckTimeMs
+        if (elapsed < 10000) {
+            val secondsLeft = ((10000 - elapsed) / 1000) + 1
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "১০ সেকেন্ডের আগে লাইভ চেক করা যাবে না! অনুগ্রহ করে $secondsLeft সেকেন্ড পর আবার চেষ্টা করুন।"
+            )
+            return
+        }
+        lastLiveCheckTimeMs = now
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCheckingLive = true)
             val results = com.example.network.LiveCheckService.checkLiveUids(listOf(uid))
