@@ -494,15 +494,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = currentState.copy(
             isCreating = true,
             errorMessage = null,
-            proxyStatus = if (useProxy) "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})..." else "DIRECT IP (PROXY OFF)"
+            proxyStatus = if (useProxy) "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})..." else "CONNECTING PROXY..."
         )
 
         viewModelScope.launch {
             try {
+                // Step 1: Connect proxy
                 if (useProxy) {
-                    delay(400) // Simulate proxy connection startup
+                    _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTING PROXY (${currentState.proxyServer}:${currentState.proxyPort})...")
+                    delay(500) // Connect proxy
+                    _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTED (PROXY ACTIVE)")
+                } else {
+                    _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTING PROXY...")
+                    delay(500)
                     _uiState.value = _uiState.value.copy(proxyStatus = "CONNECTED (PROXY ACTIVE)")
                 }
+
+                // Step 2: Wait 2 seconds after proxy connection before sending account create request
+                delay(2000)
 
                 val result = FbAccountService.createAccount(
                     phoneInput = phone,
