@@ -20,7 +20,9 @@ data class VoltxOtpItem(
 object VoltxApiService {
 
     private const val API_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api"
-    private const val API_KEY = "MAEHW0XOA8V"
+    
+    @Volatile
+    var currentApiKey: String = "MAEHW0XOA8V"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -33,7 +35,7 @@ object VoltxApiService {
         val url = "$API_BASE_URL/liveaccess"
         val request = Request.Builder()
             .url(url)
-            .header("mauthapi", API_KEY)
+            .header("mauthapi", currentApiKey)
             .get()
             .build()
 
@@ -87,7 +89,7 @@ object VoltxApiService {
 
         val request = Request.Builder()
             .url(url)
-            .header("mauthapi", API_KEY)
+            .header("mauthapi", currentApiKey)
             .header("Content-Type", "application/json")
             .post(payload.toRequestBody(jsonMediaType))
             .build()
@@ -116,7 +118,7 @@ object VoltxApiService {
         val url = "$API_BASE_URL/success-otp"
         val request = Request.Builder()
             .url(url)
-            .header("mauthapi", API_KEY)
+            .header("mauthapi", currentApiKey)
             .get()
             .build()
 

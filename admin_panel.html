@@ -1,176 +1,495 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arafat FB Creator - Admin Control Panel</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Voltx SMS Gateway - Admin Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #090514);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="text-slate-100 min-h-screen pb-12">
 
-    <div class="max-w-4xl mx-auto space-y-6">
-
-        <!-- Header -->
-        <div class="glass-card rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl border-l-4 border-sky-500">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-                    <i class="fa-brands fa-facebook text-sky-400"></i> ARAFAT FB CREATOR
-                </h1>
-                <p class="text-sm text-slate-400 mt-1">
-                    Master Admin Control Panel — Global App ON/OFF Switch
-                </p>
-            </div>
-            <button onclick="loadAppConfig()" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-sky-600/30">
-                <i class="fa-solid fa-rotate"></i> Refresh Status
-            </button>
-        </div>
-
-        <!-- Global App ON/OFF Control Card -->
-        <div class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl space-y-6 border border-slate-700/60">
-            
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700/60 pb-6">
+    <!-- Header Section -->
+    <header class="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-sky-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+                </div>
                 <div>
-                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-power-off text-amber-400"></i> App Master Switch (অ্যাপস অন/অফ সুইচ)
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Voltx Gateway Admin
+                    </h1>
+                    <p class="text-xs text-sky-400 font-medium">Master Key & Security Management</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="text-right hidden md:block">
+                    <span class="block text-xs text-slate-400">Database Connection</span>
+                    <span class="text-xs text-emerald-400 font-semibold flex items-center justify-end">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500 inline-block mr-1.5 animate-pulse"></span>
+                        Active (Firebase RTDB)
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        
+        <!-- Statistics Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Card 1 -->
+            <div class="glass-card p-6 rounded-2xl flex items-center justify-between shadow-xl transition-transform hover:-translate-y-1">
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Master Keys</span>
+                    <h3 id="stat-total" class="text-3xl font-bold mt-1 text-white">0</h3>
+                </div>
+                <div class="bg-indigo-500/10 p-3 rounded-xl">
+                    <i class="fa-solid fa-key text-2xl text-indigo-400"></i>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="glass-card p-6 rounded-2xl flex items-center justify-between shadow-xl transition-transform hover:-translate-y-1">
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Unused Keys</span>
+                    <h3 id="stat-unused" class="text-3xl font-bold mt-1 text-emerald-400">0</h3>
+                </div>
+                <div class="bg-emerald-500/10 p-3 rounded-xl">
+                    <i class="fa-solid fa-unlock-keyhole text-2xl text-emerald-400"></i>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="glass-card p-6 rounded-2xl flex items-center justify-between shadow-xl transition-transform hover:-translate-y-1">
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Used Keys</span>
+                    <h3 id="stat-used" class="text-3xl font-bold mt-1 text-rose-400">0</h3>
+                </div>
+                <div class="bg-rose-500/10 p-3 rounded-xl">
+                    <i class="fa-solid fa-lock text-2xl text-rose-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Side: Generate Keys -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-card p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <i class="fa-solid fa-plus-circle text-sky-400 mr-2"></i> Generate Master Key
                     </h2>
-                    <p class="text-xs text-slate-400 mt-1">
-                        HTML এর ভিতর এপস অফ রাখলে কারো ফোনে অ্যাপস চলবে না। অন রাখলে সবাই চালাতে পারবে।
-                    </p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2">
+                                Generation Type
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setGenMode('auto')" id="btn-mode-auto" class="py-2.5 px-4 rounded-xl font-medium text-sm border border-sky-500 bg-sky-500/20 text-sky-300">
+                                    <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> Auto-Generate
+                                </button>
+                                <button onclick="setGenMode('custom')" id="btn-mode-custom" class="py-2.5 px-4 rounded-xl font-medium text-sm border border-slate-700 bg-slate-800/30 text-slate-400 hover:text-white hover:border-slate-600">
+                                    <i class="fa-solid fa-keyboard mr-1.5"></i> Custom Key
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Auto Gen Settings -->
+                        <div id="section-auto-gen" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Quantity to Generate</label>
+                                <input type="number" id="gen-count" value="5" min="1" max="100" class="w-full bg-slate-900/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all">
+                            </div>
+                        </div>
+
+                        <!-- Custom Gen Settings -->
+                        <div id="section-custom-gen" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Enter Custom Master Key</label>
+                                <input type="text" id="custom-key-input" placeholder="e.g. MY-ADMIN-KEY-99" class="w-full bg-slate-900/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent uppercase transition-all">
+                            </div>
+                        </div>
+
+                        <button onclick="handleGenerate()" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 flex items-center justify-center space-x-2 text-sm">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>CREATE KEYS NOW</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Current Status Badge -->
-                <div id="statusBadge" class="px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-slate-800 text-slate-400 border border-slate-700">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+                <!-- Database Settings Info -->
+                <div class="glass-card p-6 rounded-2xl shadow-xl border border-slate-800/60">
+                    <h3 class="text-sm font-bold text-white mb-2 flex items-center">
+                        <i class="fa-solid fa-info-circle text-indigo-400 mr-2"></i> Rules & Guidelines
+                    </h3>
+                    <ul class="text-xs text-slate-400 space-y-2 list-disc list-inside">
+                        <li>একটি মাস্টার কী শুধুমাত্র একটি অ্যাপে একবারই এপিআই সেট করতে পারবে।</li>
+                        <li>একবার এপিআই সেট করা হয়ে গেলে সেই মাস্টার কী-টি লক (Used) হয়ে যাবে।</li>
+                        <li>অন্য কেউ বা অন্য কোনো ডিভাইসে সেই কী দ্বিতীয়বার ব্যবহার করতে পারবে না।</li>
+                        <li>ড্যাশবোর্ডের প্রতিটি ইউজড কী এর নিচে ব্যবহার করা এপিআই কী-টি দেখা যাবে।</li>
+                    </ul>
                 </div>
             </div>
 
-            <!-- Big Action Buttons -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                <!-- TURN ON BUTTON -->
-                <button onclick="setAppStatus('on')" class="group relative overflow-hidden bg-emerald-600 hover:bg-emerald-500 text-white p-6 rounded-2xl font-black text-lg transition duration-200 shadow-xl shadow-emerald-900/30 flex flex-col items-center justify-center gap-2 border border-emerald-400/30 active:scale-98">
-                    <div class="w-14 h-14 rounded-full bg-emerald-500/40 flex items-center justify-center text-2xl text-emerald-200 group-hover:scale-110 transition">
-                        <i class="fa-solid fa-circle-check"></i>
+            <!-- Right Side: Master Keys Database List -->
+            <div class="lg:col-span-8">
+                <div class="glass-card rounded-2xl shadow-xl overflow-hidden">
+                    <!-- Table Header Controls -->
+                    <div class="p-6 border-b border-slate-800/60 bg-slate-900/20 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <h2 class="text-lg font-bold text-white flex items-center">
+                            <i class="fa-solid fa-database text-indigo-400 mr-2"></i> Master Keys Database
+                        </h2>
+
+                        <!-- Search and Filter -->
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-64">
+                                <input type="text" id="search-input" oninput="filterKeys()" placeholder="Search keys..." class="w-full bg-slate-900/60 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3 text-xs text-slate-500"></i>
+                            </div>
+                            <button onclick="fetchKeys()" title="Refresh Data" class="bg-slate-800 hover:bg-slate-700 p-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white transition-all">
+                                <i class="fa-solid fa-rotate animate-hover-spin"></i>
+                            </button>
+                        </div>
                     </div>
-                    <span>TURN APP ON (অ্যাপ চালু করুন 🟢)</span>
-                    <span class="text-xs font-normal text-emerald-200">সব ইউজার স্বাভাবিকভাবে অ্যাপ চালাতে পারবে</span>
-                </button>
 
-                <!-- TURN OFF BUTTON -->
-                <button onclick="setAppStatus('off')" class="group relative overflow-hidden bg-rose-600 hover:bg-rose-500 text-white p-6 rounded-2xl font-black text-lg transition duration-200 shadow-xl shadow-rose-900/30 flex flex-col items-center justify-center gap-2 border border-rose-400/30 active:scale-98">
-                    <div class="w-14 h-14 rounded-full bg-rose-500/40 flex items-center justify-center text-2xl text-rose-200 group-hover:scale-110 transition">
-                        <i class="fa-solid fa-circle-xmark"></i>
+                    <!-- Database Table / List -->
+                    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-slate-800/60">
+                            <thead class="bg-slate-950/45 sticky top-0 z-10 backdrop-blur-md">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">Master Key Name</th>
+                                    <th scope="col" class="px-6 py-4 class text-left text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400">Details / API Key Used</th>
+                                    <th scope="col" class="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keys-tbody" class="divide-y divide-slate-800/40 bg-slate-900/10">
+                                <!-- Loaded dynamically -->
+                                <tr>
+                                    <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                                        <i class="fa-solid fa-circle-notch animate-spin text-xl text-sky-500 mb-2"></i>
+                                        <p>Loading Master Keys database...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <span>TURN APP OFF (অ্যাপ বন্ধ রাখুন 🔴)</span>
-                    <span class="text-xs font-normal text-rose-200">কারো ফোনে অ্যাপ চলবে না, অফ দেখাবে</span>
-                </button>
-
-            </div>
-
-            <!-- Custom Notice Message Form -->
-            <div class="pt-4 border-t border-slate-700/60 space-y-3">
-                <label class="block text-sm font-bold text-slate-300">
-                    <i class="fa-solid fa-bullhorn text-sky-400"></i> Maintenance Notice Message (ইউজারদের মেসেজ)
-                </label>
-                <textarea id="noticeMessage" rows="3" placeholder="e.g. অ্যাপস বর্তমানে আপডেটের কাজের জন্য বন্ধ রয়েছে। কিছুক্ষন পর চেষ্টা করুন।" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-sky-500 resize-none"></textarea>
-                <button onclick="saveNoticeOnly()" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-lg active:scale-95">
-                    <i class="fa-solid fa-floppy-disk"></i> Save Notice Message Only
-                </button>
+                </div>
             </div>
 
         </div>
 
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-24 opacity-0 transition-all duration-300 max-w-sm glass-card px-5 py-4 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700/60 z-50">
+        <div id="toast-icon" class="h-8 w-8 rounded-full flex items-center justify-center text-white"></div>
+        <div>
+            <h4 id="toast-title" class="text-sm font-bold text-white">Notification</h4>
+            <p id="toast-msg" class="text-xs text-slate-400 mt-0.5">Details of operation.</p>
+        </div>
     </div>
 
+    <!-- Script Section -->
     <script>
-        const CONFIG_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com/app_config.json";
+        const FIREBASE_DB_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com";
+        let masterKeysData = {};
+        let generationMode = "auto"; // "auto" or "custom"
 
-        async function loadAppConfig() {
-            const badge = document.getElementById('statusBadge');
-            badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-slate-800 text-slate-400 border border-slate-700";
-            badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking...`;
+        // On Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchKeys();
+        });
 
-            try {
-                const res = await fetch(CONFIG_URL);
-                const data = await res.json();
+        // Set Generation Mode (Auto vs Custom)
+        function setGenMode(mode) {
+            generationMode = mode;
+            const btnAuto = document.getElementById('btn-mode-auto');
+            const btnCustom = document.getElementById('btn-mode-custom');
+            const secAuto = document.getElementById('section-auto-gen');
+            const secCustom = document.getElementById('section-custom-gen');
 
-                const status = (data && data.status) ? data.status : 'on';
-                const notice = (data && data.notice) ? data.notice : 'অ্যাপ বর্তমানে এডমিন দ্বারা বন্ধ রাখা হয়েছে।';
-
-                document.getElementById('noticeMessage').value = notice;
-
-                if (status === 'off' || status === 'disabled') {
-                    badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-rose-500/20 text-rose-400 border border-rose-500/40";
-                    badge.innerHTML = `<i class="fa-solid fa-circle text-rose-500 animate-pulse"></i> APP IS OFF (বন্ধ 🔴)`;
-                } else {
-                    badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
-                    badge.innerHTML = `<i class="fa-solid fa-circle text-emerald-500 animate-pulse"></i> APP IS ON (চালু 🟢)`;
-                }
-            } catch (e) {
-                badge.className = "px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/40";
-                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Network Error`;
+            if (mode === 'auto') {
+                btnAuto.className = "py-2.5 px-4 rounded-xl font-medium text-sm border border-sky-500 bg-sky-500/20 text-sky-300";
+                btnCustom.className = "py-2.5 px-4 rounded-xl font-medium text-sm border border-slate-700 bg-slate-800/30 text-slate-400 hover:text-white hover:border-slate-600";
+                secAuto.classList.remove('hidden');
+                secCustom.classList.add('hidden');
+            } else {
+                btnCustom.className = "py-2.5 px-4 rounded-xl font-medium text-sm border border-sky-500 bg-sky-500/20 text-sky-300";
+                btnAuto.className = "py-2.5 px-4 rounded-xl font-medium text-sm border border-slate-700 bg-slate-800/30 text-slate-400 hover:text-white hover:border-slate-600";
+                secCustom.classList.remove('hidden');
+                secAuto.classList.add('hidden');
             }
         }
 
-        async function setAppStatus(newStatus) {
-            const notice = document.getElementById('noticeMessage').value.trim() || 'অ্যাপ বর্তমানে এডমিন দ্বারা বন্ধ রাখা হয়েছে।';
-
-            const payload = {
-                status: newStatus,
-                isAppOn: newStatus === 'on',
-                notice: notice,
-                updatedAt: new Date().toISOString()
-            };
-
+        // Fetch All Master Keys
+        async function fetchKeys() {
             try {
-                const res = await fetch(CONFIG_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    alert(`Success! App is now turned ${newStatus.toUpperCase()} (${newStatus === 'on' ? 'চালু 🟢' : 'বন্ধ 🔴'}).`);
-                    loadAppConfig();
-                } else {
-                    alert("Failed to update status on Firebase.");
-                }
-            } catch (e) {
-                alert("Error updating status: " + e.message);
+                const res = await fetch(`${FIREBASE_DB_URL}/master_keys.json`);
+                if (!res.ok) throw new Error("Could not load data from Firebase.");
+                const data = await res.json() || {};
+                masterKeysData = data;
+                renderKeys(data);
+                updateStats(data);
+            } catch (err) {
+                showToast("Connection Error", err.message, "error");
+                const tbody = document.getElementById('keys-tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-rose-400 text-sm">
+                            <i class="fa-solid fa-triangle-exclamation text-xl mb-2"></i>
+                            <p>Failed to connect to Firebase. Rules might be restricted or network is down.</p>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
-        async function saveNoticeOnly() {
-            const notice = document.getElementById('noticeMessage').value.trim();
-            if (!notice) {
-                alert("Please write a notice message.");
+        // Render Keys into Table
+        function renderKeys(keys) {
+            const tbody = document.getElementById('keys-tbody');
+            const search = document.getElementById('search-input').value.trim().toLowerCase();
+            tbody.innerHTML = '';
+
+            const keysArray = Object.keys(keys);
+            if (keysArray.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                            <i class="fa-solid fa-folder-open text-xl mb-2"></i>
+                            <p>No master keys found in the database. Generate some!</p>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
-            try {
-                const res = await fetch("https://admin-pnal-ed74f-default-rtdb.firebaseio.com/app_config/notice.json", {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(notice)
-                });
+            let renderedCount = 0;
+            // Display latest first
+            keysArray.reverse().forEach(keyName => {
+                if (search && !keyName.toLowerCase().includes(search)) return;
+                
+                renderedCount++;
+                const item = keys[keyName];
+                const isUsed = item.status === 'used';
+                
+                // Status badge
+                const statusBadge = isUsed 
+                    ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20"><span class="h-1.5 w-1.5 rounded-full bg-rose-500 mr-1.5"></span>Used</span>`
+                    : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>Unused</span>`;
 
-                if (res.ok) {
-                    alert("Notice message saved successfully!");
-                    loadAppConfig();
+                // Details cell
+                let detailsText = `<span class="text-slate-500 italic text-xs">Ready to be used</span>`;
+                if (isUsed) {
+                    const formattedDate = item.used_at ? new Date(item.used_at).toLocaleString() : 'N/A';
+                    detailsText = `
+                        <div class="space-y-1">
+                            <div class="flex items-center text-xs font-semibold text-slate-300">
+                                <i class="fa-solid fa-key text-sky-400 text-[10px] mr-1.5"></i>
+                                API: <span class="bg-slate-800/60 px-1.5 py-0.5 rounded text-sky-300 font-mono text-xs ml-1">${item.used_by_api_key || 'Unknown'}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 flex items-center">
+                                <i class="fa-solid fa-clock mr-1"></i> ${formattedDate}
+                            </div>
+                        </div>
+                    `;
                 }
-            } catch (e) {
-                alert("Error saving notice: " + e.message);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/15 transition-all duration-150";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white tracking-wide font-mono">${keyName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs">${statusBadge}</td>
+                    <td class="px-6 py-4 text-xs">${detailsText}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
+                        <div class="flex items-center justify-end space-x-2">
+                            <button onclick="copyToClipboard('${keyName}')" title="Copy Master Key" class="bg-slate-800 hover:bg-sky-600/20 hover:text-sky-300 p-2 rounded-lg border border-slate-700/80 text-slate-400 transition-all">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                            <button onclick="deleteKey('${keyName}')" title="Delete Key" class="bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 p-2 rounded-lg border border-slate-700/80 text-slate-400 transition-all">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (renderedCount === 0 && search) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                            <i class="fa-solid fa-magnifying-glass text-xl mb-2"></i>
+                            <p>No master keys match your search "${search}"</p>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
-        // Initial Load
-        loadAppConfig();
+        // Update Statistics
+        function updateStats(keys) {
+            const keysArray = Object.values(keys);
+            const total = keysArray.length;
+            const used = keysArray.filter(k => k.status === 'used').length;
+            const unused = total - used;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-unused').innerText = unused;
+            document.getElementById('stat-used').innerText = used;
+        }
+
+        // Search Filter function
+        function filterKeys() {
+            renderKeys(masterKeysData);
+        }
+
+        // Handle Keys Generation
+        async function handleGenerate() {
+            if (generationMode === 'auto') {
+                const countInput = document.getElementById('gen-count');
+                const count = parseInt(countInput.value) || 1;
+                
+                showToast("Generating...", `Generating ${count} new Master Keys`, "info");
+                
+                let successCount = 0;
+                for (let i = 0; i < count; i++) {
+                    const generatedKey = "VMK-" + Math.random().toString(36).substring(2, 8).toUpperCase() + Math.floor(100 + Math.random() * 900);
+                    const saved = await uploadKeyToFirebase(generatedKey);
+                    if (saved) successCount++;
+                }
+                
+                showToast("Success", `Successfully generated ${successCount} Master Keys!`, "success");
+                fetchKeys();
+            } else {
+                const keyInput = document.getElementById('custom-key-input');
+                const rawKey = keyInput.value.trim().toUpperCase();
+                
+                if (!rawKey) {
+                    showToast("Validation Error", "Please enter a valid Custom Key", "error");
+                    return;
+                }
+                
+                // Sanitize key (Firebase key shouldn't contain $, #, [, ], /, or .)
+                const sanitized = rawKey.replace(/[\$\#\[\]\/\.]/g, '-');
+                
+                showToast("Saving...", "Uploading custom Master Key", "info");
+                const saved = await uploadKeyToFirebase(sanitized);
+                if (saved) {
+                    showToast("Created", "Custom Master Key generated successfully!", "success");
+                    keyInput.value = "";
+                    fetchKeys();
+                } else {
+                    showToast("Error", "Could not create custom key.", "error");
+                }
+            }
+        }
+
+        // Send Key to Firebase Realtime Database
+        async function uploadKeyToFirebase(keyName) {
+            try {
+                const payload = {
+                    status: "unused",
+                    used_by_api_key: "",
+                    created_at: Date.now()
+                };
+                const res = await fetch(`${FIREBASE_DB_URL}/master_keys/${keyName}.json`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                return res.ok;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        // Delete Master Key
+        async function deleteKey(keyName) {
+            if (!confirm(`Are you sure you want to delete the Master Key "${keyName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            showToast("Deleting...", `Removing Key: ${keyName}`, "info");
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/master_keys/${keyName}.json`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    showToast("Deleted", "Master Key deleted successfully!", "success");
+                    fetchKeys();
+                } else {
+                    showToast("Deletion Failed", "Server rejected the operation.", "error");
+                }
+            } catch (err) {
+                showToast("Network Error", err.message, "error");
+            }
+        }
+
+        // Copy Key to Clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copied", `Key "${text}" copied to clipboard!`, "success");
+            }).catch(() => {
+                showToast("Copy Failed", "Please copy manually.", "error");
+            });
+        }
+
+        // Show Beautiful Toast Notifications
+        function showToast(title, msg, type) {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMsg = document.getElementById('toast-msg');
+
+            // Setup styling based on type
+            if (type === 'success') {
+                toastIcon.className = "h-8 w-8 rounded-full flex items-center justify-center text-white bg-emerald-500 shadow-md shadow-emerald-500/20";
+                toastIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                toastTitle.className = "text-sm font-bold text-emerald-400";
+            } else if (type === 'error') {
+                toastIcon.className = "h-8 w-8 rounded-full flex items-center justify-center text-white bg-rose-500 shadow-md shadow-rose-500/20";
+                toastIcon.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+                toastTitle.className = "text-sm font-bold text-rose-400";
+            } else if (type === 'info') {
+                toastIcon.className = "h-8 w-8 rounded-full flex items-center justify-center text-white bg-sky-500 shadow-md shadow-sky-500/20";
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
+                toastTitle.className = "text-sm font-bold text-sky-400";
+            }
+
+            toastTitle.innerText = title;
+            toastMsg.innerText = msg;
+
+            // Trigger animation in
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            // Trigger animation out after 3.5 seconds
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3500);
+        }
     </script>
 </body>
 </html>

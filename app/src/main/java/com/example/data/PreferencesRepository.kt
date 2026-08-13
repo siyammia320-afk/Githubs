@@ -52,4 +52,8 @@ class PreferencesRepository(context: Context) {
     var sheetPassword: String
         get() = prefs.getString("sheet_password", "") ?: ""
         set(value) = prefs.edit().putString("sheet_password", value).apply()
+
+    var voltxApiKey: String
+        get() = prefs.getString("voltx_api_key", "MAEHW0XOA8V") ?: "MAEHW0XOA8V"
+        set(value) = prefs.edit().putString("voltx_api_key", value).apply()
 }

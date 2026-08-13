@@ -54,27 +54,6 @@ fun SplashScreen(onFinished: () -> Unit) {
     val subtitleAlpha = remember { Animatable(0f) }
     val splashAlpha = remember { Animatable(1f) }
 
-    // Pulse animation for background glow
-    val infiniteTransition = rememberInfiniteTransition(label = "Glow")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "PulseScale"
-    )
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "PulseAlpha"
-    )
-
     LaunchedEffect(Unit) {
         // Animate Logo
         launch {
@@ -82,9 +61,9 @@ fun SplashScreen(onFinished: () -> Unit) {
         }
         launch {
             logoScale.animateTo(
-                targetValue = 1f,
+                targetValue = 1.0f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    dampingRatio = Spring.DampingRatioNoBouncy,
                     stiffness = Spring.StiffnessLow
                 )
             )
@@ -99,10 +78,10 @@ fun SplashScreen(onFinished: () -> Unit) {
         subtitleAlpha.animateTo(1f, animationSpec = tween(500))
 
         // Wait before fade out
-        delay(1800)
+        delay(1500)
 
         // Fade Out Splash
-        splashAlpha.animateTo(0f, animationSpec = tween(500))
+        splashAlpha.animateTo(0f, animationSpec = tween(400))
         onFinished()
     }
 
@@ -110,36 +89,9 @@ fun SplashScreen(onFinished: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .alpha(splashAlpha.value)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0B1120),
-                        Color(0xFF0F172A),
-                        Color(0xFF0284C7),
-                        Color(0xFF0B1120)
-                    )
-                )
-            ),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
-        // Outer Glowing Aura
-        Box(
-            modifier = Modifier
-                .size(180.dp)
-                .scale(pulseScale)
-                .alpha(pulseAlpha)
-                .clip(CircleShape)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF38BDF8).copy(alpha = 0.8f),
-                            Color(0xFF0284C7).copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -153,17 +105,13 @@ fun SplashScreen(onFinished: () -> Unit) {
                     .alpha(logoAlpha.value)
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0xFF0284C7), Color(0xFF2563EB), Color(0xFF1D4ED8))
-                        )
-                    )
-                    .border(3.dp, Color(0xFF38BDF8), CircleShape)
+                    .background(Color(0xFFDBEAFE))
+                    .border(1.dp, Color(0xFF2563EB), CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Facebook,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = Color(0xFF2563EB),
                     modifier = Modifier.size(60.dp)
                 )
             }
@@ -173,31 +121,31 @@ fun SplashScreen(onFinished: () -> Unit) {
             // Text: ARAFAT FB CREATTOR
             Text(
                 text = "ARAFAT FB CREATTOR",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif,
-                letterSpacing = 2.sp,
+                letterSpacing = 1.5.sp,
                 textAlign = TextAlign.Center,
-                color = Color.White,
+                color = Color(0xFF0F172A),
                 modifier = Modifier.alpha(textAlpha.value)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Glowing Badge line
+            // Badge line
             Box(
                 modifier = Modifier
                     .alpha(subtitleAlpha.value)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF1E293B).copy(alpha = 0.8f))
-                    .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF1F5F9))
+                    .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = "⚡ AUTOMATED FB CREATION TOOL ⚡",
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF38BDF8),
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2563EB),
                     letterSpacing = 1.sp
                 )
             }

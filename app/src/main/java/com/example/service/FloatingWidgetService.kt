@@ -385,7 +385,7 @@ fun FloatingDialogOverlayContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(Color.Black.copy(alpha = 0.35f))
             .clickable(
                 onClick = onCloseClick,
                 indication = null,
@@ -403,15 +403,15 @@ fun FloatingDialogOverlayContent(
                     interactionSource = remember { MutableInteractionSource() }
                 )
                 .clip(RoundedCornerShape(20.dp))
-                .border(1.5.dp, Color(0xFF0284C7), RoundedCornerShape(20.dp)),
-            color = Color(0xFF0F172A)
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp)),
+            color = Color.White
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header Bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1E293B))
+                        .background(Color(0xFFF1F5F9))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -424,7 +424,7 @@ fun FloatingDialogOverlayContent(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF0284C7)),
+                                .background(Color(0xFF2563EB)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("FB", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -434,7 +434,7 @@ fun FloatingDialogOverlayContent(
                             text = "ARAFAT FB CREATOR",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color(0xFF0F172A)
                         )
                     }
 
@@ -448,12 +448,12 @@ fun FloatingDialogOverlayContent(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF7F1D1D))
+                                .background(Color(0xFFFEE2E2))
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Stop,
                                 contentDescription = "Stop Service",
-                                tint = Color(0xFFFCA5A5),
+                                tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -464,12 +464,12 @@ fun FloatingDialogOverlayContent(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF334155))
+                                .background(Color(0xFFE2E8F0))
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Dialog",
-                                tint = Color.White,
+                                tint = Color(0xFF1E293B),
                                 modifier = Modifier.size(20.dp)
                             )
                         }

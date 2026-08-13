@@ -26,6 +26,7 @@ import kotlinx.coroutines.isActive
 import com.example.data.Country
 
 import com.example.network.VoltxApiService
+import com.example.network.MasterKeyService
 import com.example.network.VoltxOtpItem
 import com.example.util.NotificationHelper
 import org.json.JSONArray
@@ -76,7 +77,10 @@ data class AccountCreatorUiState(
     val sheetPasswordInput: String = "",
     val sheetUidInput: String = "",
     val sheetCookiesInput: String = "",
-    val sheetSavedRecords: List<String> = emptyList()
+    val sheetSavedRecords: List<String> = emptyList(),
+    val voltxApiKey: String = "MAEHW0XOA8V",
+    val showApiKeyDialog: Boolean = false,
+    val isSavingApiKey: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -112,6 +116,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val savedActiveNumbers = loadActiveNumbersFromPrefs()
         val sheetPass = prefsRepository.sheetPassword
         val sheetRecords = readSheetRecordsFromCsv()
+        val savedApiKey = prefsRepository.voltxApiKey
+
+        // Set the active api key in service
+        VoltxApiService.currentApiKey = savedApiKey
 
         _uiState.value = _uiState.value.copy(
             passwordInput = savedPassword,
@@ -130,7 +138,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             customUserAgent = customUa,
             activeNumbers = savedActiveNumbers,
             sheetPasswordInput = sheetPass,
-            sheetSavedRecords = sheetRecords
+            sheetSavedRecords = sheetRecords,
+            voltxApiKey = savedApiKey
         )
 
         // Start periodic app status check (every 30 seconds)
@@ -543,24 +552,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val raw = uid.trim()
         if (raw.contains("\t")) {
             val parts = raw.split("\t").map { it.replace("\"", "").trim() }.filter { it.isNotEmpty() }
-            if (parts.isNotEmpty()) {
+            if (parts.isNotEmpty() && !parts[0].contains("=")) {
                 val extractedUid = parts[0]
-                val extractedPassword = if (parts.size > 1) parts[1] else ""
-                val extractedCookiesList = if (parts.size > 2) parts.subList(2, parts.size) else emptyList()
-                
-                val rawCookiesCombined = extractedCookiesList.joinToString("; ")
-                val cleanCookies = cleanCookiesString(rawCookiesCombined)
-                
-                _uiState.value = _uiState.value.copy(
-                    sheetUidInput = extractedUid,
-                    sheetCookiesInput = cleanCookies
-                )
-                if (extractedPassword.isNotEmpty()) {
-                    prefsRepository.sheetPassword = extractedPassword
+                if (parts.size == 2) {
+                    val secondPart = parts[1]
+                    if (secondPart.contains("=")) {
+                        _uiState.value = _uiState.value.copy(
+                            sheetUidInput = extractedUid,
+                            sheetCookiesInput = cleanCookiesString(secondPart)
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            sheetUidInput = extractedUid
+                        )
+                        prefsRepository.sheetPassword = secondPart
+                        _uiState.value = _uiState.value.copy(
+                            sheetPasswordInput = secondPart
+                        )
+                    }
+                } else {
+                    val extractedPassword = parts[1]
+                    val extractedCookiesList = parts.subList(2, parts.size)
+                    val rawCookiesCombined = extractedCookiesList.joinToString("; ")
+                    val cleanCookies = cleanCookiesString(rawCookiesCombined)
+                    
                     _uiState.value = _uiState.value.copy(
-                        sheetPasswordInput = extractedPassword
+                        sheetUidInput = extractedUid,
+                        sheetCookiesInput = cleanCookies
                     )
+                    if (extractedPassword.isNotEmpty()) {
+                        prefsRepository.sheetPassword = extractedPassword
+                        _uiState.value = _uiState.value.copy(
+                            sheetPasswordInput = extractedPassword
+                        )
+                    }
                 }
+            } else {
+                _uiState.value = _uiState.value.copy(sheetUidInput = uid)
             }
         } else {
             _uiState.value = _uiState.value.copy(sheetUidInput = uid)
@@ -571,27 +599,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val raw = cookies.trim()
         if (raw.contains("\t")) {
             val parts = raw.split("\t").map { it.replace("\"", "").trim() }.filter { it.isNotEmpty() }
-            if (parts.isNotEmpty()) {
+            if (parts.isNotEmpty() && !parts[0].contains("=")) {
                 val extractedUid = parts[0]
-                val extractedPassword = if (parts.size > 1) parts[1] else ""
-                val extractedCookiesList = if (parts.size > 2) parts.subList(2, parts.size) else emptyList()
-                
-                val rawCookiesCombined = extractedCookiesList.joinToString("; ")
-                val cleanCookies = cleanCookiesString(rawCookiesCombined)
-                
-                _uiState.value = _uiState.value.copy(
-                    sheetUidInput = extractedUid,
-                    sheetCookiesInput = cleanCookies
-                )
-                if (extractedPassword.isNotEmpty()) {
-                    prefsRepository.sheetPassword = extractedPassword
+                if (parts.size == 2) {
+                    val secondPart = parts[1]
+                    if (secondPart.contains("=")) {
+                        _uiState.value = _uiState.value.copy(
+                            sheetUidInput = extractedUid,
+                            sheetCookiesInput = cleanCookiesString(secondPart)
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            sheetUidInput = extractedUid
+                        )
+                        prefsRepository.sheetPassword = secondPart
+                        _uiState.value = _uiState.value.copy(
+                            sheetPasswordInput = secondPart
+                        )
+                    }
+                } else {
+                    val extractedPassword = parts[1]
+                    val extractedCookiesList = parts.subList(2, parts.size)
+                    val rawCookiesCombined = extractedCookiesList.joinToString("; ")
+                    val cleanCookies = cleanCookiesString(rawCookiesCombined)
+                    
                     _uiState.value = _uiState.value.copy(
-                        sheetPasswordInput = extractedPassword
+                        sheetUidInput = extractedUid,
+                        sheetCookiesInput = cleanCookies
                     )
+                    if (extractedPassword.isNotEmpty()) {
+                        prefsRepository.sheetPassword = extractedPassword
+                        _uiState.value = _uiState.value.copy(
+                            sheetPasswordInput = extractedPassword
+                        )
+                    }
                 }
+            } else {
+                val cleanedJoined = parts.joinToString("; ")
+                _uiState.value = _uiState.value.copy(sheetCookiesInput = cleanCookiesString(cleanedJoined))
             }
         } else {
-            _uiState.value = _uiState.value.copy(sheetCookiesInput = cookies)
+            _uiState.value = _uiState.value.copy(sheetCookiesInput = cleanCookiesString(cookies))
         }
     }
 
@@ -665,15 +713,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return cleanRaw
         }
 
-        val regex = Regex("([a-zA-Z0-9_.-]+)\\s*=\\s*([^;\\s\"]+)")
-        val matches = regex.findAll(cleanRaw)
-        val pairs = matches.map { matchResult ->
-            val key = matchResult.groups[1]?.value?.trim() ?: ""
-            val value = matchResult.groups[2]?.value?.trim() ?: ""
-            "$key=$value"
-        }.filter { it.isNotEmpty() }.toList()
+        val parts = cleanRaw.split(";")
+        val cleanedParts = parts.map { part ->
+            part.trim()
+        }.filter { it.isNotEmpty() && it.contains("=") }
 
-        return if (pairs.isEmpty()) cleanRaw else pairs.joinToString("; ")
+        return if (cleanedParts.isEmpty()) cleanRaw else cleanedParts.joinToString("; ")
     }
 
     fun appendRecordToCsv(uid: String, password: String, cookies: String) {
@@ -738,6 +783,71 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(errorMessage = "Failed to clear file: ${e.message}")
+        }
+    }
+
+    fun openApiKeyDialog() {
+        _uiState.value = _uiState.value.copy(showApiKeyDialog = true)
+    }
+
+    fun closeApiKeyDialog() {
+        _uiState.value = _uiState.value.copy(showApiKeyDialog = false)
+    }
+
+    fun updateApiKeyInput(newKey: String) {
+        _uiState.value = _uiState.value.copy(voltxApiKey = newKey)
+    }
+
+    fun saveApiKey(masterKey: String, newKey: String) {
+        val trimmedMaster = masterKey.trim()
+        val trimmedApi = newKey.trim()
+
+        if (trimmedMaster.isEmpty()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "মাস্টার কী ফাঁকা রাখা যাবে না!")
+            return
+        }
+        if (trimmedApi.isEmpty()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "নতুন API কী ফাঁকা রাখা যাবে না!")
+            return
+        }
+
+        _uiState.value = _uiState.value.copy(isSavingApiKey = true, errorMessage = null, successMessage = null)
+
+        viewModelScope.launch {
+            val validation = MasterKeyService.validateMasterKey(trimmedMaster)
+            if (!validation.isValid) {
+                _uiState.value = _uiState.value.copy(
+                    isSavingApiKey = false,
+                    errorMessage = validation.errorMessage.ifEmpty { "মাস্টার কী সঠিক নয় বা নেটওয়ার্ক এরর!" }
+                )
+                return@launch
+            }
+
+            if (validation.isUsed) {
+                _uiState.value = _uiState.value.copy(
+                    isSavingApiKey = false,
+                    errorMessage = "এই মাস্টার কী-টি ইতিমধ্যে ব্যবহার করা হয়েছে! নতুন কী ব্যবহার করুন।"
+                )
+                return@launch
+            }
+
+            val success = MasterKeyService.claimMasterKey(trimmedMaster, trimmedApi)
+            if (success) {
+                prefsRepository.voltxApiKey = trimmedApi
+                VoltxApiService.currentApiKey = trimmedApi
+                _uiState.value = _uiState.value.copy(
+                    isSavingApiKey = false,
+                    voltxApiKey = trimmedApi,
+                    showApiKeyDialog = false,
+                    successMessage = "API Key সফলভাবে পরিবর্তন করা হয়েছে!"
+                )
+                refreshFacebookRanges()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isSavingApiKey = false,
+                    errorMessage = "সার্ভারে মাস্টার কী রেজিস্টার করতে ব্যর্থ হয়েছে! অনুগ্রহ করে আবার চেষ্টা করুন।"
+                )
+            }
         }
     }
 }
