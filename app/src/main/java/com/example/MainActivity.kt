@@ -530,7 +530,8 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
                         onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
                         onGoToGetNumber = { selectedTabIndex = 0 },
-                        onOpenProxySettings = viewModel::openProxyDialog
+                        onOpenProxySettings = viewModel::openProxyDialog,
+                        onCheckLive = viewModel::checkLiveStatusForSingleAccount
                     )
                     2 -> InboxTabContent(
                         activeNumbers = uiState.activeNumbers,
@@ -546,7 +547,10 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
                         onDeleteOne = viewModel::deleteAccount,
                         onCopyUid = { uid -> viewModel.copyToClipboard(context, uid, "UID") },
                         onCopyNumber = { num -> viewModel.copyToClipboard(context, num, "NUMBER") },
-                        onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") }
+                        onCopyCookies = { cookie -> viewModel.copyToClipboard(context, cookie, "COOKIES") },
+                        liveStatuses = uiState.liveStatuses,
+                        isCheckingLive = uiState.isCheckingLive,
+                        onCheckLive = viewModel::checkLiveStatusForSavedAccounts
                     )
                 }
             }
@@ -920,7 +924,8 @@ fun CreateAccountTabContent(
     onCopyNumber: (String) -> Unit,
     onCopyCookies: (String) -> Unit,
     onGoToGetNumber: () -> Unit,
-    onOpenProxySettings: () -> Unit = {}
+    onOpenProxySettings: () -> Unit = {},
+    onCheckLive: (String) -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -1095,7 +1100,22 @@ fun CreateAccountTabContent(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text("✅ Account Created!", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text("UID: ${account.uid}", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    
+                    val liveStatus = uiState.liveStatuses[account.uid]
+                    val statusText = when (liveStatus) {
+                        true -> " Live ✅"
+                        false -> " Dad 🚫"
+                        null -> ""
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("UID: ${account.uid}", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        if (statusText.isNotEmpty()) {
+                            Text(statusText, fontSize = 11.sp, color = if (liveStatus == true) Color(0xFF10B981) else Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                        }
+                    }
 
                     Row(
                         modifier = Modifier
@@ -1140,6 +1160,28 @@ fun CreateAccountTabContent(
                                 .testTag("copy_cookies_button")
                         ) {
                             Text("COPY COOKIES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Button(
+                        onClick = { onCheckLive(account.uid) },
+                        enabled = !uiState.isCheckingLive,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(34.dp)
+                    ) {
+                        if (uiState.isCheckingLive) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 1.5.dp,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        } else {
+                            Text("Live Chake ⚡", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -1460,7 +1502,10 @@ fun AccountHistoryTabContent(
     onDeleteOne: (Long) -> Unit,
     onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
-    onCopyCookies: (String) -> Unit
+    onCopyCookies: (String) -> Unit,
+    liveStatuses: Map<String, Boolean> = emptyMap(),
+    isCheckingLive: Boolean = false,
+    onCheckLive: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1487,14 +1532,41 @@ fun AccountHistoryTabContent(
                     color = Color.Gray
                 )
             }
+        }
 
-            if (accounts.isNotEmpty()) {
+        if (accounts.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onCheckLive,
+                    enabled = !isCheckingLive,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f).height(38.dp)
+                ) {
+                    if (isCheckingLive) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    } else {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Live Chake", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+
                 OutlinedButton(
                     onClick = onClearAll,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF991B1B)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444)),
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.testTag("clear_all_button")
+                    modifier = Modifier.weight(1f).height(38.dp).testTag("clear_all_button")
                 ) {
                     Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1533,7 +1605,8 @@ fun AccountHistoryTabContent(
                         onDelete = { onDeleteOne(acc.id) },
                         onCopyUid = { onCopyUid(acc.uid) },
                         onCopyNumber = { onCopyNumber(acc.phone) },
-                        onCopyCookies = { onCopyCookies(acc.cookies) }
+                        onCopyCookies = { onCopyCookies(acc.cookies) },
+                        liveStatus = liveStatuses[acc.uid]
                     )
                 }
             }
@@ -1547,7 +1620,8 @@ fun AccountItemCard(
     onDelete: () -> Unit,
     onCopyUid: (String) -> Unit,
     onCopyNumber: (String) -> Unit,
-    onCopyCookies: (String) -> Unit
+    onCopyCookies: (String) -> Unit,
+    liveStatus: Boolean? = null
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -1584,9 +1658,26 @@ fun AccountItemCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("UID: ${account.uid}", fontSize = 12.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "UID: ${account.uid}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF38BDF8),
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    when (liveStatus) {
+                        true -> Text("Live ✅", fontSize = 12.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                        false -> Text("DAD 🚫", fontSize = 12.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                        null -> {}
+                    }
+                }
                 Text("Phone: ${account.phone}", fontSize = 12.sp, color = Color(0xFF94A3B8))
             }
 

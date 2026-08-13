@@ -80,7 +80,9 @@ data class AccountCreatorUiState(
     val sheetSavedRecords: List<String> = emptyList(),
     val voltxApiKey: String = "MAEHW0XOA8V",
     val showApiKeyDialog: Boolean = false,
-    val isSavingApiKey: Boolean = false
+    val isSavingApiKey: Boolean = false,
+    val liveStatuses: Map<String, Boolean> = emptyMap(),
+    val isCheckingLive: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -848,6 +850,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     errorMessage = "সার্ভারে মাস্টার কী রেজিস্টার করতে ব্যর্থ হয়েছে! অনুগ্রহ করে আবার চেষ্টা করুন।"
                 )
             }
+        }
+    }
+
+    fun checkLiveStatusForSavedAccounts() {
+        viewModelScope.launch {
+            val accounts = accountHistory.value
+            if (accounts.isEmpty()) {
+                _uiState.value = _uiState.value.copy(errorMessage = "কোনো সেভ একাউন্ট খুঁজে পাওয়া যায়নি!")
+                return@launch
+            }
+            _uiState.value = _uiState.value.copy(isCheckingLive = true)
+            val uids = accounts.map { it.uid }
+            val results = com.example.network.LiveCheckService.checkLiveUids(uids)
+            val updatedMap = _uiState.value.liveStatuses.toMutableMap()
+            updatedMap.putAll(results)
+            _uiState.value = _uiState.value.copy(
+                isCheckingLive = false,
+                liveStatuses = updatedMap,
+                successMessage = "লাইভ চেক সম্পন্ন হয়েছে!"
+            )
+        }
+    }
+
+    fun checkLiveStatusForSingleAccount(uid: String) {
+        if (uid.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCheckingLive = true)
+            val results = com.example.network.LiveCheckService.checkLiveUids(listOf(uid))
+            val updatedMap = _uiState.value.liveStatuses.toMutableMap()
+            updatedMap.putAll(results)
+            _uiState.value = _uiState.value.copy(
+                isCheckingLive = false,
+                liveStatuses = updatedMap,
+                successMessage = "লাইভ চেক সম্পন্ন হয়েছে!"
+            )
         }
     }
 }
