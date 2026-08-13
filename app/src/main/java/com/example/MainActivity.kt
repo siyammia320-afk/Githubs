@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.ui.AuthScreen
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -109,6 +110,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -160,11 +164,17 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainAppScreen() {
+fun MainAppScreen(viewModel: com.example.ui.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
     var showSplashScreen by rememberSaveable { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     if (showSplashScreen) {
         SplashScreen(onFinished = { showSplashScreen = false })
+        return
+    }
+
+    if (!uiState.isLoggedIn) {
+        AuthScreen(viewModel = viewModel, onAuthSuccess = {})
         return
     }
 
@@ -209,6 +219,15 @@ fun MainAppScreen() {
                             )
                         }
                     }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.logOutUser() }) {
+                        Icon(
+                            imageVector = Icons.Default.PowerSettingsNew,
+                            contentDescription = "Logout",
+                            tint = Color(0xFFEF4444)
+                        )
+                    }
                 }
             )
         }
@@ -222,7 +241,7 @@ fun MainAppScreen() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            FloatingWidgetControlCard()
+            FloatingWidgetControlCard(viewModel = viewModel)
         }
     }
 }
@@ -234,6 +253,11 @@ fun FullFeatureAppContent(viewModel: MainViewModel = viewModel()) {
     val accountsHistory by viewModel.accountHistory.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    if (!uiState.isLoggedIn) {
+        AuthScreen(viewModel = viewModel, onAuthSuccess = {})
+        return
+    }
 
     if (!uiState.isAppOn) {
         Box(
@@ -712,27 +736,6 @@ fun GetNumberTabContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Button(
-                                onClick = onOpenApiKeyDialog,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Key,
-                                        contentDescription = null,
-                                        tint = Color(0xFF1E293B),
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Text("Api Set", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                                }
-                            }
-
                             IconButton(
                                 onClick = onRefreshRanges,
                                 enabled = !uiState.isLoadingRanges,
@@ -2231,10 +2234,11 @@ fun ApiKeySettingsDialog(
 }
 
 @Composable
-fun FloatingWidgetControlCard() {
+fun FloatingWidgetControlCard(viewModel: MainViewModel) {
     val context = LocalContext.current
     val isFloatingActive by FloatingWidgetService.isRunning.collectAsStateWithLifecycle()
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -2412,6 +2416,223 @@ fun FloatingWidgetControlCard() {
                         ) {
                             Icon(Icons.Default.Stop, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Text("STOP FLOATING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFF334155), thickness = 1.dp)
+
+            // Balance section
+            Text(
+                text = "💰 আপনার ব্যালেন্স (Wallet Balance)",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = String.format("%.2f ৳", uiState.userBalance),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF34D399)
+                )
+                Text(
+                    text = "প্রতি OTP মূল্য: ${uiState.otpPrice} ৳",
+                    fontSize = 11.sp,
+                    color = Color(0xFF60A5FA)
+                )
+            }
+
+            // Withdraw Form
+            HorizontalDivider(color = Color(0xFF334155), thickness = 1.dp)
+
+            Text(
+                text = "💸 উইথড্রল রিকোয়েস্ট (Withdrawal Request)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            var selectedMethod by remember { mutableStateOf("Bkash") }
+            var detailsInput by remember { mutableStateOf("") }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Bkash toggle
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (selectedMethod == "Bkash") Color(0xFFE11D48) else Color(0xFF1E293B))
+                        .clickable { selectedMethod = "Bkash"; detailsInput = "" }
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Bkash",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+
+                // Binance toggle
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (selectedMethod == "Binance") Color(0xFFF59E0B) else Color(0xFF1E293B))
+                        .clickable { selectedMethod = "Binance"; detailsInput = "" }
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Binance",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            // Input field based on choice
+            OutlinedTextField(
+                value = detailsInput,
+                onValueChange = { detailsInput = it },
+                label = {
+                    Text(
+                        text = if (selectedMethod == "Bkash") "বিকাশ নাম্বার দিন (Bkash Number)" else "বাইনান্স ইউআইডি দিন (Binance UID)",
+                        color = Color(0xFF94A3B8)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = if (selectedMethod == "Bkash") Color(0xFFE11D48) else Color(0xFFF59E0B),
+                    unfocusedBorderColor = Color(0xFF475569)
+                )
+            )
+
+            // Status message
+            if (uiState.withdrawalError != null) {
+                Text(
+                    text = uiState.withdrawalError ?: "",
+                    color = Color(0xFFEF4444),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (uiState.withdrawalSuccess != null) {
+                Text(
+                    text = uiState.withdrawalSuccess ?: "",
+                    color = Color(0xFF10B981),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Withdraw action button
+            Button(
+                onClick = {
+                    viewModel.clearWithdrawalMessages()
+                    viewModel.submitWithdrawal(selectedMethod, detailsInput)
+                },
+                enabled = detailsInput.isNotBlank() && uiState.userBalance >= 20.0 && !uiState.isWithdrawalLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB),
+                    disabledContainerColor = Color(0xFF334155)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(42.dp)
+            ) {
+                if (uiState.isWithdrawalLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(
+                        text = if (uiState.userBalance < 20.0) "মিনিমাম উইথড্র ২০ টাকা (Min 20 TK)" else "উইথড্র করুন (Withdraw Full)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            // Withdrawals History
+            if (uiState.withdrawalsList.isNotEmpty()) {
+                HorizontalDivider(color = Color(0xFF334155), thickness = 1.dp)
+                Text(
+                    text = "📋 উইথড্রল রেকর্ড (Withdrawal History):",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.heightIn(max = 120.dp).verticalScroll(rememberScrollState())
+                ) {
+                    uiState.withdrawalsList.forEach { item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF1E293B), RoundedCornerShape(6.dp))
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "${item.method} (${item.value})",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = String.format("%.2f ৳", item.amount),
+                                    color = Color(0xFF34D399),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+
+                            // Status badge
+                            val badgeColor = when (item.status.lowercase()) {
+                                "approved", "complete" -> Color(0xFF10B981)
+                                "rejected" -> Color(0xFFEF4444)
+                                else -> Color(0xFFF59E0B) // pending
+                            }
+
+                            val badgeText = when (item.status.lowercase()) {
+                                "approved", "complete" -> "Complete ✅"
+                                "rejected" -> "Rejected ❌"
+                                else -> "Pending ⏳"
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(badgeColor.copy(alpha = 0.2f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = badgeText,
+                                    color = badgeColor,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
                         }
                     }
                 }

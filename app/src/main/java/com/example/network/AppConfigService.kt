@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 
 object AppConfigService {
 
-    private const val FIREBASE_DB_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com"
+    private const val FIREBASE_DB_URL = "https://fb-virul-tools-default-rtdb.firebaseio.com"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)

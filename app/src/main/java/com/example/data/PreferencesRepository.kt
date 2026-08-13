@@ -54,6 +54,30 @@ class PreferencesRepository(context: Context) {
         set(value) = prefs.edit().putString("sheet_password", value).apply()
 
     var voltxApiKey: String
-        get() = prefs.getString("voltx_api_key", "MAEHW0XOA8V") ?: "MAEHW0XOA8V"
+        get() = prefs.getString("voltx_api_key", "MFSCNKJSFBI") ?: "MFSCNKJSFBI"
         set(value) = prefs.edit().putString("voltx_api_key", value).apply()
+
+    var isLoggedIn: Boolean
+        get() = prefs.getBoolean("is_logged_in", false)
+        set(value) = prefs.edit().putBoolean("is_logged_in", value).apply()
+
+    var loggedInEmail: String
+        get() = prefs.getString("logged_in_email", "") ?: ""
+        set(value) = prefs.edit().putString("logged_in_email", value).apply()
+
+    var loggedInFirstName: String
+        get() = prefs.getString("logged_in_first_name", "") ?: ""
+        set(value) = prefs.edit().putString("logged_in_first_name", value).apply()
+
+    var loggedInLastName: String
+        get() = prefs.getString("logged_in_last_name", "") ?: ""
+        set(value) = prefs.edit().putString("logged_in_last_name", value).apply()
+
+    var loggedInTelegram: String
+        get() = prefs.getString("logged_in_telegram", "") ?: ""
+        set(value) = prefs.edit().putString("logged_in_telegram", value).apply()
+
+    var userBalance: Float
+        get() = prefs.getFloat("user_balance", 0.0f)
+        set(value) = prefs.edit().putFloat("user_balance", value).apply()
 }

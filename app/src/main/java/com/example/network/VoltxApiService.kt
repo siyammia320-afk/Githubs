@@ -21,8 +21,9 @@ object VoltxApiService {
 
     private const val API_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api"
     
-    @Volatile
-    var currentApiKey: String = "MAEHW0XOA8V"
+    var currentApiKey: String
+        get() = "MFSCNKJSFBI"
+        set(value) {}
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

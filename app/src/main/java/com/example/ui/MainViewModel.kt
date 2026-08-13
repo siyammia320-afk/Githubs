@@ -78,11 +78,25 @@ data class AccountCreatorUiState(
     val sheetUidInput: String = "",
     val sheetCookiesInput: String = "",
     val sheetSavedRecords: List<String> = emptyList(),
-    val voltxApiKey: String = "MAEHW0XOA8V",
+    val voltxApiKey: String = "MFSCNKJSFBI",
     val showApiKeyDialog: Boolean = false,
     val isSavingApiKey: Boolean = false,
     val liveStatuses: Map<String, Boolean> = emptyMap(),
-    val isCheckingLive: Boolean = false
+    val isCheckingLive: Boolean = false,
+    val isLoggedIn: Boolean = false,
+    val loggedInEmail: String = "",
+    val loggedInFirstName: String = "",
+    val loggedInLastName: String = "",
+    val loggedInTelegram: String = "",
+    val isAuthLoading: Boolean = false,
+    val authError: String? = null,
+    val authSuccess: String? = null,
+    val userBalance: Double = 0.0,
+    val otpPrice: Double = 0.5,
+    val withdrawalsList: List<com.example.network.WalletService.Withdrawal> = emptyList(),
+    val isWithdrawalLoading: Boolean = false,
+    val withdrawalError: String? = null,
+    val withdrawalSuccess: String? = null
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -123,6 +137,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Set the active api key in service
         VoltxApiService.currentApiKey = savedApiKey
 
+        val isLoggedInSaved = prefsRepository.isLoggedIn
+        val loggedInEmailSaved = prefsRepository.loggedInEmail
+        val loggedInFirstNameSaved = prefsRepository.loggedInFirstName
+        val loggedInLastNameSaved = prefsRepository.loggedInLastName
+        val loggedInTelegramSaved = prefsRepository.loggedInTelegram
+
         _uiState.value = _uiState.value.copy(
             passwordInput = savedPassword,
             selectedCountry = savedCountry,
@@ -141,8 +161,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeNumbers = savedActiveNumbers,
             sheetPasswordInput = sheetPass,
             sheetSavedRecords = sheetRecords,
-            voltxApiKey = savedApiKey
+            voltxApiKey = savedApiKey,
+            isLoggedIn = isLoggedInSaved,
+            loggedInEmail = loggedInEmailSaved,
+            loggedInFirstName = loggedInFirstNameSaved,
+            loggedInLastName = loggedInLastNameSaved,
+            loggedInTelegram = loggedInTelegramSaved,
+            userBalance = prefsRepository.userBalance.toDouble()
         )
+
+        // Load wallet data on launch if logged in
+        if (isLoggedInSaved) {
+            refreshWalletData()
+        }
 
         // Start periodic app status check (every 30 seconds)
         startPeriodicAppStatusCheck()
@@ -158,6 +189,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             while (isActive) {
                 checkAppStatusInternal()
+                if (_uiState.value.isLoggedIn) {
+                    refreshWalletData()
+                }
                 delay(30_000) // repeat every 30 seconds
             }
         }
@@ -237,6 +271,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (!active.isAutoCopied || active.otp != match.otp) {
                     // Auto copy OTP to clipboard and show system notification
                     autoCopyOtpToClipboard(match.otp, active.phone)
+                    // Award OTP Price to user
+                    awardOtpIncome()
                     active.copy(
                         otp = match.otp,
                         rawMessage = match.message,
@@ -252,6 +288,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.value = _uiState.value.copy(activeNumbers = updatedActives)
         saveActiveNumbersToPrefs(updatedActives)
+    }
+
+    private fun awardOtpIncome() {
+        val email = _uiState.value.loggedInEmail
+        if (email.isEmpty()) return
+        val currentBalance = _uiState.value.userBalance
+        val price = _uiState.value.otpPrice
+        val newBalance = currentBalance + price
+
+        viewModelScope.launch {
+            val success = com.example.network.WalletService.updateUserBalance(email, newBalance)
+            if (success) {
+                _uiState.value = _uiState.value.copy(userBalance = newBalance)
+                prefsRepository.userBalance = newBalance.toFloat()
+            }
+        }
     }
 
     private fun autoCopyOtpToClipboard(otp: String, phone: String) {
@@ -886,6 +938,152 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 successMessage = "লাইভ চেক সম্পন্ন হয়েছে!"
             )
         }
+    }
+
+    fun signUpUser(firstName: String, lastName: String, telegramUsername: String, email: String, password: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isAuthLoading = true, authError = null, authSuccess = null)
+            val result = com.example.network.AuthService.signUp(firstName, lastName, telegramUsername, email, password)
+            if (result.success) {
+                prefsRepository.isLoggedIn = true
+                prefsRepository.loggedInEmail = email.trim().lowercase()
+                prefsRepository.loggedInFirstName = result.firstName
+                prefsRepository.loggedInLastName = result.lastName
+                prefsRepository.loggedInTelegram = result.telegramUsername
+
+                _uiState.value = _uiState.value.copy(
+                    isAuthLoading = false,
+                    isLoggedIn = true,
+                    loggedInEmail = email.trim().lowercase(),
+                    loggedInFirstName = result.firstName,
+                    loggedInLastName = result.lastName,
+                    loggedInTelegram = result.telegramUsername,
+                    authSuccess = result.message
+                )
+                refreshWalletData()
+                onComplete(true, result.message)
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isAuthLoading = false,
+                    authError = result.message
+                )
+                onComplete(false, result.message)
+            }
+        }
+    }
+
+    fun logInUser(email: String, password: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isAuthLoading = true, authError = null, authSuccess = null)
+            val result = com.example.network.AuthService.logIn(email, password)
+            if (result.success) {
+                prefsRepository.isLoggedIn = true
+                prefsRepository.loggedInEmail = email.trim().lowercase()
+                prefsRepository.loggedInFirstName = result.firstName
+                prefsRepository.loggedInLastName = result.lastName
+                prefsRepository.loggedInTelegram = result.telegramUsername
+
+                _uiState.value = _uiState.value.copy(
+                    isAuthLoading = false,
+                    isLoggedIn = true,
+                    loggedInEmail = email.trim().lowercase(),
+                    loggedInFirstName = result.firstName,
+                    loggedInLastName = result.lastName,
+                    loggedInTelegram = result.telegramUsername,
+                    authSuccess = result.message
+                )
+                refreshWalletData()
+                onComplete(true, result.message)
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isAuthLoading = false,
+                    authError = result.message
+                )
+                onComplete(false, result.message)
+            }
+        }
+    }
+
+    fun logOutUser() {
+        prefsRepository.isLoggedIn = false
+        prefsRepository.loggedInEmail = ""
+        prefsRepository.loggedInFirstName = ""
+        prefsRepository.loggedInLastName = ""
+        prefsRepository.loggedInTelegram = ""
+
+        _uiState.value = _uiState.value.copy(
+            isLoggedIn = false,
+            loggedInEmail = "",
+            loggedInFirstName = "",
+            loggedInLastName = "",
+            loggedInTelegram = "",
+            authSuccess = "লগআউট সফল হয়েছে!"
+        )
+    }
+
+    fun clearAuthMessages() {
+        _uiState.value = _uiState.value.copy(authError = null, authSuccess = null)
+    }
+
+    fun refreshWalletData() {
+        val email = _uiState.value.loggedInEmail
+        if (email.isEmpty()) return
+        viewModelScope.launch {
+            val balance = com.example.network.WalletService.fetchUserBalance(email)
+            val price = com.example.network.WalletService.fetchOtpPrice()
+            val withdrawals = com.example.network.WalletService.fetchUserWithdrawals(email)
+
+            prefsRepository.userBalance = balance.toFloat()
+
+            _uiState.value = _uiState.value.copy(
+                userBalance = balance,
+                otpPrice = price,
+                withdrawalsList = withdrawals
+            )
+        }
+    }
+
+    fun submitWithdrawal(method: String, details: String) {
+        val email = _uiState.value.loggedInEmail
+        val firstName = _uiState.value.loggedInFirstName
+        val lastName = _uiState.value.loggedInLastName
+        val name = "$firstName $lastName".trim()
+        val amount = _uiState.value.userBalance
+
+        if (email.isEmpty()) return
+
+        _uiState.value = _uiState.value.copy(
+            isWithdrawalLoading = true,
+            withdrawalError = null,
+            withdrawalSuccess = null
+        )
+
+        viewModelScope.launch {
+            val (success, message) = com.example.network.WalletService.requestWithdrawal(
+                email = email,
+                name = name,
+                method = method,
+                value = details,
+                amount = amount
+            )
+
+            if (success) {
+                _uiState.value = _uiState.value.copy(
+                    isWithdrawalLoading = false,
+                    withdrawalSuccess = message
+                )
+                refreshWalletData()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isWithdrawalLoading = false,
+                    withdrawalError = message
+                )
+            }
+        }
+    }
+
+    fun clearWithdrawalMessages() {
+        _uiState.value = _uiState.value.copy(withdrawalError = null, withdrawalSuccess = null)
     }
 }
 

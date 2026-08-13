@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 object MasterKeyService {
 
-    private const val FIREBASE_DB_URL = "https://admin-pnal-ed74f-default-rtdb.firebaseio.com"
+    private const val FIREBASE_DB_URL = "https://fb-virul-tools-default-rtdb.firebaseio.com"
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     private val client = OkHttpClient.Builder()
